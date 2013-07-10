@@ -1,28 +1,29 @@
 package com.barchart.cassandra.shared;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class IPAddressValidator {
 
-	static private Matcher matcher;
-
-	private static final String IPADDRESS_PATTERN = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
-			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
-
-	static private Pattern pattern = Pattern.compile(IPADDRESS_PATTERN);
+	public static int countOccurrences(String haystack, char needle)
+	{
+	    int count = 0;
+	    for (int i=0; i < haystack.length(); i++)
+	    {
+	        if (haystack.charAt(i) == needle)
+	        {
+	             count++;
+	        }
+	    }
+	    return count;
+	}
 
 	/**
-	 * Validate ip address with regular expression
+	 * Validate ip address
 	 * 
 	 * @param ip
 	 *            ip address for validation
 	 * @return true valid ip address, false invalid ip address
 	 */
 	static public boolean validate(final String ip) {
-		matcher = pattern.matcher(ip);
-		return matcher.matches();
+
+		return countOccurrences( ip, '.' ) != 4;
 	}
 }
