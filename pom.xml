@@ -50,11 +50,33 @@
 			<classifier>sources</classifier>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>com.netflix.astyanax</groupId>
-			<artifactId>astyanax</artifactId>
+			<artifactId>astyanax-core</artifactId>
 			<version>1.56.42</version>
-		</dependency>            
+		</dependency>
+		<dependency>
+			<groupId>com.netflix.astyanax</groupId>
+			<artifactId>astyanax-thrift</artifactId>
+			<version>1.56.42</version>
+		</dependency>
+		<dependency>
+			<groupId>com.netflix.astyanax</groupId>
+			<artifactId>astyanax-cassandra</artifactId>
+			<version>1.56.42</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>
