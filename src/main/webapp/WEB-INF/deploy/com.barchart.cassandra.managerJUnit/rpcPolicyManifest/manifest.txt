@@ -1,0 +1,2 @@
+# Module com.barchart.cassandra.managerJUnit
+# RPC service class, partial path of RPC policy file
