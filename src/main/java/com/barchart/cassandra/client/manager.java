@@ -40,18 +40,18 @@ public class manager implements EntryPoint {
 	 * This is the entry point method.
 	 */
 	public void onModuleLoad() {
-		final Button sendButton = new Button("Send");
+		final Button connectButton = new Button("Connect");
 		final TextBox nameField = new TextBox();
 		nameField.setText("Name");
 		final Label errorLabel = new Label();
 
 		// We can add style names to widgets
-		sendButton.addStyleName("sendButton");
+		connectButton.addStyleName("sendButton");
 
 		// Add the nameField and sendButton to the RootPanel
 		// Use RootPanel.get() to get the entire body element
 		RootPanel.get("nameFieldContainer").add(nameField);
-		RootPanel.get("sendButtonContainer").add(sendButton);
+		RootPanel.get("sendButtonContainer").add(connectButton);
 		RootPanel.get("errorLabelContainer").add(errorLabel);
 
 		// Focus the cursor on the name field when the app loads
@@ -81,8 +81,8 @@ public class manager implements EntryPoint {
 		closeButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				dialogBox.hide();
-				sendButton.setEnabled(true);
-				sendButton.setFocus(true);
+				connectButton.setEnabled(true);
+				connectButton.setFocus(true);
 			}
 		});
 
@@ -113,12 +113,12 @@ public class manager implements EntryPoint {
 				errorLabel.setText("");
 				String textToServer = nameField.getText();
 				if (!FieldVerifier.isValidName(textToServer)) {
-					errorLabel.setText("Please enter at least four characters");
+					errorLabel.setText("Please enter a valid address");
 					return;
 				}
 
 				// Then, we send the input to the server.
-				sendButton.setEnabled(false);
+				connectButton.setEnabled(false);
 				textToServerLabel.setText(textToServer);
 				serverResponseLabel.setText("");
 				greetingService.greetServer(textToServer,
@@ -148,7 +148,7 @@ public class manager implements EntryPoint {
 
 		// Add a handler to send the name to the server
 		MyHandler handler = new MyHandler();
-		sendButton.addClickHandler(handler);
+		connectButton.addClickHandler(handler);
 		nameField.addKeyUpHandler(handler);
 	}
 }
