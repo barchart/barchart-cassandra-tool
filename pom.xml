@@ -18,6 +18,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>gwtchismes</id>
+			<url>http://gwtchismes.googlecode.com/svn/mavenrepo/</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.google.gwt</groupId>
@@ -86,6 +93,13 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.5</version>
 		</dependency>
+		<dependency>
+			<groupId>gwtchismes</groupId>
+			<artifactId>gwtchismes</artifactId>
+			<version>0.9.8</version>
+			<scope>provided</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>

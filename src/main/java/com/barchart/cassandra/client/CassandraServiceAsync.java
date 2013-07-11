@@ -6,4 +6,7 @@ public interface CassandraServiceAsync {
 
 	void greetServer(String name, AsyncCallback<String> callback);
 
+	void batchInsertUsers(Integer number, Integer batchNum,
+			AsyncCallback<String> callback);
+
 }

@@ -6,12 +6,9 @@ public class IPAddressValidator {
 	{
 	    int count = 0;
 	    for (int i=0; i < haystack.length(); i++)
-	    {
 	        if (haystack.charAt(i) == needle)
-	        {
 	             count++;
-	        }
-	    }
+
 	    return count;
 	}
 
@@ -24,6 +21,6 @@ public class IPAddressValidator {
 	 */
 	static public boolean validate(final String ip) {
 
-		return countOccurrences( ip, '.' ) != 4;
+		return countOccurrences( ip, '.' ) == 3;
 	}
 }

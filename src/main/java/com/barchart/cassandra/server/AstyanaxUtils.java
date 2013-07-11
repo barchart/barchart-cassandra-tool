@@ -24,8 +24,8 @@ public class AstyanaxUtils {
 		put ("max.conns", "100" );
 		put( "max.timeout.count", "3" );
 		put( "max.conns.per.host", "1" );
-		put( "connect.timeout", "6000" );
-		put( "socket.timeout", "6000" );
+		put( "connect.timeout", "60000" );
+		put( "socket.timeout", "60000" );
 	}};
 
 	public static void setProperty(final String prop, final String value) {

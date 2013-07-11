@@ -9,4 +9,7 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 @RemoteServiceRelativePath("greet")
 public interface CassandraService extends RemoteService {
 	String greetServer(String name) throws IllegalArgumentException;
+
+	String batchInsertUsers(Integer number, Integer batchNum) throws IllegalArgumentException;
+
 }

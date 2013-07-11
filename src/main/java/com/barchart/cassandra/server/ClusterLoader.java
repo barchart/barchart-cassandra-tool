@@ -60,18 +60,22 @@ public class ClusterLoader {
 
 		// get cluster
 		AstyanaxContext<Cluster> clusterContext = builder
+				.withAstyanaxConfiguration(
+						new AstyanaxConfigurationImpl()      
+							.setCqlVersion("3.0.0")
+							.setTargetCassandraVersion("1.2"))
 				.buildCluster(ThriftFamilyFactory.getInstance());
-		clusterContext.start();
 
+		clusterContext.start();
 		Cluster cluster = clusterContext.getClient();
 
 		return cluster;
 	}
 
 	public synchronized Cluster getCluster(final Map<String, String> map) {
-		if (cluster != null) {
+
+		if (cluster != null)
 			return cluster;
-		}
 
 		try {
 			String clusterName = map.get("cluster");

@@ -1,17 +1,17 @@
 package com.barchart.cassandra.client;
 
-import com.barchart.cassandra.shared.FieldVerifier;
+import com.google.code.p.gwtchismes.client.GWTCAlert;
+import com.google.code.p.gwtchismes.client.GWTCBox;
+import com.google.code.p.gwtchismes.client.GWTCButton;
+import com.google.code.p.gwtchismes.client.GWTCPopupBox;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyCodes;
-import com.google.gwt.event.dom.client.KeyUpEvent;
-import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.DialogBox;
-import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.DockPanel;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
@@ -21,134 +21,134 @@ import com.google.gwt.user.client.ui.VerticalPanel;
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class manager implements EntryPoint {
-	/**
-	 * The message displayed to the user when the server cannot be reached or
-	 * returns an error.
-	 */
-	private static final String SERVER_ERROR = "An error occurred while "
-			+ "attempting to contact the server. Please check your network "
-			+ "connection and try again.";
 
 	/**
 	 * Create a remote service proxy to talk to the server-side Greeting
 	 * service.
 	 */
-	private final CassandraServiceAsync greetingService = GWT
+	private final CassandraServiceAsync rpcService = GWT
 			.create(CassandraService.class);
+
+	private GWTCAlert alert = new GWTCAlert( GWTCAlert.OPTION_ROUNDED_BLUE | GWTCAlert.OPTION_ANIMATION  );
 
 	/**
 	 * This is the entry point method.
 	 */
 	public void onModuleLoad() {
-		final Button connectButton = new Button("Connect");
-		final TextBox nameField = new TextBox();
-		nameField.setText("Name");
-		final Label errorLabel = new Label();
 
-		// We can add style names to widgets
-		connectButton.addStyleName("sendButton");
+		final GWTCBox mainPanel = new GWTCBox( );
+		mainPanel.setSize( "" + Window.getClientWidth() + "px", "" + Window.getClientHeight() + "px" );
 
-		// Add the nameField and sendButton to the RootPanel
-		// Use RootPanel.get() to get the entire body element
-		RootPanel.get("nameFieldContainer").add(nameField);
-		RootPanel.get("sendButtonContainer").add(connectButton);
-		RootPanel.get("errorLabelContainer").add(errorLabel);
+		mainPanel.setTitle( "Cassandra tools" );
 
-		// Focus the cursor on the name field when the app loads
-		nameField.setFocus(true);
-		nameField.selectAll();
+		final VerticalPanel functions = new VerticalPanel();
+		mainPanel.add( functions, DockPanel.CENTER );
 
-		// Create the popup dialog box
-		final DialogBox dialogBox = new DialogBox();
-		dialogBox.setText("Remote Procedure Call");
-		dialogBox.setAnimationEnabled(true);
-		final Button closeButton = new Button("Close");
-		// We can set the id of a widget by accessing its Element
-		closeButton.getElement().setId("closeButton");
-		final Label textToServerLabel = new Label();
-		final HTML serverResponseLabel = new HTML();
-		VerticalPanel dialogVPanel = new VerticalPanel();
-		dialogVPanel.addStyleName("dialogVPanel");
-		dialogVPanel.add(new HTML("<b>Sending name to the server:</b>"));
-		dialogVPanel.add(textToServerLabel);
-		dialogVPanel.add(new HTML("<br><b>Server replies:</b>"));
-		dialogVPanel.add(serverResponseLabel);
-		dialogVPanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
-		dialogVPanel.add(closeButton);
-		dialogBox.setWidget(dialogVPanel);
+		final GWTCButton connectBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect to cluster" );
+		connectBtn.addClickHandler( new ClickHandler() {
 
-		// Add a handler to close the DialogBox
-		closeButton.addClickHandler(new ClickHandler() {
+			@Override
 			public void onClick(ClickEvent event) {
-				dialogBox.hide();
-				connectButton.setEnabled(true);
-				connectButton.setFocus(true);
-			}
-		});
 
-		// Create a handler for the sendButton and nameField
-		class MyHandler implements ClickHandler, KeyUpHandler {
-			/**
-			 * Fired when the user clicks on the sendButton.
-			 */
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final HorizontalPanel panel = new HorizontalPanel();
+				queryBox.add( panel );
+
+				final TextBox nameField = new TextBox();
+				nameField.setText("Name");
+				nameField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
+				panel.add( nameField );
+
+				// Focus the cursor on the name field when the app loads
+				nameField.setFocus(true);
+				nameField.selectAll();
+
+				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect" );
+				panel.add( connectButton );
+
+				connectButton.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						if ( nameField.getText().length() == 0 ) {
+							alert.alert( "Please enter a host" );
+							return;
+						}
+
+						final String host = nameField.getText();
+
+						rpcService.greetServer(host,
+								new AsyncCallback<String>() {
+
+									public void onFailure(Throwable caught) {
+										alert.alert( "RPC Failure" );
+									}
+
+									public void onSuccess(String result) {
+										alert.alert( "Response: " + result );
+									}
+								});
+						}} );
+
+				queryBox.center();
+			}} );
+
+		functions.add( connectBtn );
+
+		final GWTCButton testUserBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "create users" );
+		testUserBtn.addClickHandler( new ClickHandler() {
+
+			@Override
 			public void onClick(ClickEvent event) {
-				sendNameToServer();
-			}
 
-			/**
-			 * Fired when the user types in the nameField.
-			 */
-			public void onKeyUp(KeyUpEvent event) {
-				if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER) {
-					sendNameToServer();
-				}
-			}
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final VerticalPanel panel = new VerticalPanel();
+				queryBox.add( panel );
 
-			/**
-			 * Send the name from the nameField to the server and wait for a
-			 * response.
-			 */
-			private void sendNameToServer() {
-				// First, we validate the input.
-				errorLabel.setText("");
-				String textToServer = nameField.getText();
-				if (!FieldVerifier.isValidName(textToServer)) {
-					errorLabel.setText("Please enter a valid address");
-					return;
-				}
+				panel.add( new Label( "Number of users" ) );
+				
+				final TextBox numberField = new TextBox();
+				panel.add( numberField );
 
-				// Then, we send the input to the server.
-				connectButton.setEnabled(false);
-				textToServerLabel.setText(textToServer);
-				serverResponseLabel.setText("");
-				greetingService.greetServer(textToServer,
-						new AsyncCallback<String>() {
-							public void onFailure(Throwable caught) {
-								// Show the RPC error message to the user
-								dialogBox
-										.setText("Remote Procedure Call - Failure");
-								serverResponseLabel
-										.addStyleName("serverResponseLabelError");
-								serverResponseLabel.setHTML(SERVER_ERROR);
-								dialogBox.center();
-								closeButton.setFocus(true);
-							}
+				panel.add( new Label( "Batch amount" ) );
 
-							public void onSuccess(String result) {
-								dialogBox.setText("Remote Procedure Call");
-								serverResponseLabel
-										.removeStyleName("serverResponseLabelError");
-								serverResponseLabel.setHTML(result);
-								dialogBox.center();
-								closeButton.setFocus(true);
-							}
-						});
-			}
-		}
+				final TextBox batchNumber = new TextBox();
+				panel.add( batchNumber );
 
-		// Add a handler to send the name to the server
-		MyHandler handler = new MyHandler();
-		connectButton.addClickHandler(handler);
-		nameField.addKeyUpHandler(handler);
+				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Start" );
+				panel.add( connectButton );
+
+				connectButton.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						if ( numberField.getText().length() == 0 || batchNumber.getText().length() == 0 ) {
+							alert.alert( "Please enter valid numbers" );
+							return;
+						}
+
+						final int numberOfUsers = Integer.parseInt( numberField.getText() );
+						final int batchAmount = Integer.parseInt( batchNumber.getText() );
+
+						rpcService.batchInsertUsers( numberOfUsers, batchAmount,
+								new AsyncCallback<String>() {
+
+									public void onFailure(Throwable caught) {
+										alert.alert( "RPC Failure" );
+									}
+
+									public void onSuccess(String result) {
+										alert.alert( "Response: " + result );
+									}
+								});
+						}} );
+
+				queryBox.center();
+			}} );
+
+		functions.add( testUserBtn );
+		RootPanel.get().add( mainPanel );
 	}
 }

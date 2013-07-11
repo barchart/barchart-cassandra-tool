@@ -15,7 +15,8 @@
 	<!-- <inherits name='com.google.gwt.user.theme.dark.Dark'/> -->
 
 	<!-- Other module inherits -->
-	<inherits name="com.googlecode.gwtx.Java" />
+	<inherits name="com.google.code.p.gwtchismes.GWTChismes" />
+	<stylesheet src='GWTC-compressed.css' />
 
 	<!-- Specify the app entry point class. -->
 	<entry-point class='com.barchart.cassandra.client.manager' />

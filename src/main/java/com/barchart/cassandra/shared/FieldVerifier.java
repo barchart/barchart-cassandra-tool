@@ -36,6 +36,6 @@ public class FieldVerifier {
 	 */
 	public static boolean isValidName(String address) {
 
-		return IPAddressValidator.validate( address );
+		return IPAddressValidator.validate( address ) || address.endsWith( ".com" );
 	}
 }
