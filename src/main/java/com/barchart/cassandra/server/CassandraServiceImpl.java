@@ -6,13 +6,6 @@ import org.slf4j.LoggerFactory;
 import com.barchart.cassandra.client.CassandraService;
 import com.barchart.cassandra.shared.FieldVerifier;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 /**
  * The server side implementation of the RPC service.
@@ -22,9 +15,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		CassandraService {
 
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-
-	private AstyanaxContext<Keyspace> context = null;
-	private Keyspace keyspace = null;
 
 	public String greetServer(String input) throws IllegalArgumentException {
 
@@ -37,7 +27,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			throw new IllegalArgumentException("Name must be a valid address");
 		}
 
-		String serverInfo = getServletContext().getServerInfo();
 		String userAgent = getThreadLocalRequest().getHeader("User-Agent");
 
 		// Escape data from the client to avoid cross-site script
@@ -45,32 +34,12 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		input = escapeHtml(input);
 		userAgent = escapeHtml(userAgent);
 
-		try {
-			context = new AstyanaxContext.Builder()
-					.forCluster("ClusterName")
-					.forKeyspace("KeyspaceName")
-					.withAstyanaxConfiguration(
-							new AstyanaxConfigurationImpl()
-									.setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
-					.withConnectionPoolConfiguration(
-							new ConnectionPoolConfigurationImpl(
-									"MyConnectionPool").setPort(9160)
-									.setMaxConnsPerHost(1)
-									.setSeeds(input + ":9160"))
-					.buildKeyspace(ThriftFamilyFactory.getInstance());
+		AstyanaxUtils.setProperty( "seeds", input );
 
-			context.start();
-			keyspace = context.getClient();
+		if ( AstyanaxUtils.getCluster() != null )
+			return "Cluster properties are " + AstyanaxUtils.getCluster().toString();
 
-			if (context != null)
-				return "Successfully connected to " + input;
-
-			return "Problems connecting to " + input;
-
-		} catch (Exception e) {
-			log.error( "Fatal error", e );
-			return "Problems:\n" + e.getStackTrace();
-		}
+		return "Problems connecting to " + input;
 	}
 
 	/**

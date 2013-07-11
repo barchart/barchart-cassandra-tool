@@ -78,8 +78,7 @@ public class ClusterLoader {
 			String seedHosts = map.get("seeds");
 			String connectionPoolName = map.get("connection.pool.name");
 			int maxConns = Integer.parseInt(map.get("max.conns"));
-			int maxConnsPerHost = Integer.parseInt(map
-					.get("max.conns.per.host"));
+			int maxConnsPerHost = Integer.parseInt( map.get("max.conns.per.host") );
 			int maxTimeoutCount = Integer
 					.parseInt(map.get("max.timeout.count"));
 			int connectTimeout = Integer.parseInt(map.get("connect.timeout"));

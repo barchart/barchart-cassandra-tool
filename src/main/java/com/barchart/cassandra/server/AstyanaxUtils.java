@@ -18,12 +18,19 @@ public class AstyanaxUtils {
 
 	@SuppressWarnings("serial")
 	private static Map<String, String> properties = new HashMap<String, String>() {{
-		put( "cluster", "BarchartCluster" );
-		put( "seeds", "127.0.0.1" );
+		put( "cluster", "Test Cluster" );
+		put( "seeds", "ec2-54-226-146-6.compute-1.amazonaws.com" );
+		put( "connection.pool.name", "MyPool" );
+		put ("max.conns", "100" );
+		put( "max.timeout.count", "3" );
 		put( "max.conns.per.host", "1" );
-		put( "connect.timeout", "600" );
-		put( "socket.timeout", "600" );
+		put( "connect.timeout", "6000" );
+		put( "socket.timeout", "6000" );
 	}};
+
+	public static void setProperty(final String prop, final String value) {
+		properties.put( prop, value );
+	}
 
 	private static ClusterLoader loader = new ClusterLoader();
 
