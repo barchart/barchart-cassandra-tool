@@ -11,6 +11,7 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.DockPanel;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
@@ -37,66 +38,31 @@ public class manager implements EntryPoint {
 	public void onModuleLoad() {
 
 		final GWTCBox mainPanel = new GWTCBox( );
-		mainPanel.setSize( "" + Window.getClientWidth() + "px", "" + Window.getClientHeight() + "px" );
 
 		mainPanel.setTitle( "Cassandra tools" );
 
-		final VerticalPanel functions = new VerticalPanel();
-		mainPanel.add( functions, DockPanel.CENTER );
+		final FlexTable functions = new FlexTable();
+		functions.setStyleName( "flexPanel" );
+		functions.getElement().setAttribute( "cellpadding", "5" );
+
+		mainPanel.add( functions, DockPanel.NORTH );
 
 		final GWTCButton connectBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect to cluster" );
-		connectBtn.addClickHandler( new ClickHandler() {
+		connectBtn.setTitle( "Click here to establish a connection to a datacenter" );
+		functions.setWidget( 0, 0, connectBtn );
+
+		final GWTCButton rebuildBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Build structure" );
+		rebuildBtn.setTitle( "Click here to (re)build the data store in a center" );
+		rebuildBtn.addClickHandler( new ClickHandler() {
 
 			@Override
 			public void onClick(ClickEvent event) {
-
-				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
-				final HorizontalPanel panel = new HorizontalPanel();
-				queryBox.add( panel );
-
-				final TextBox nameField = new TextBox();
-				nameField.setText("Name");
-				nameField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
-				panel.add( nameField );
-
-				// Focus the cursor on the name field when the app loads
-				nameField.setFocus(true);
-				nameField.selectAll();
-
-				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect" );
-				panel.add( connectButton );
-
-				connectButton.addClickHandler( new ClickHandler() {
-
-					@Override
-					public void onClick(ClickEvent event) {
-
-						if ( nameField.getText().length() == 0 ) {
-							alert.alert( "Please enter a host" );
-							return;
-						}
-
-						final String host = nameField.getText();
-
-						rpcService.greetServer(host,
-								new AsyncCallback<String>() {
-
-									public void onFailure(Throwable caught) {
-										alert.alert( "RPC Failure" );
-									}
-
-									public void onSuccess(String result) {
-										alert.alert( "Response: " + result );
-									}
-								});
-						}} );
-
-				queryBox.center();
+				// TODO Auto-generated method stub
+				
 			}} );
 
-		functions.add( connectBtn );
-
 		final GWTCButton testUserBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "create users" );
+		testUserBtn.setTitle( "Click here to add test users to the data center and benchmark it" );
 		testUserBtn.addClickHandler( new ClickHandler() {
 
 			@Override
@@ -148,7 +114,65 @@ public class manager implements EntryPoint {
 				queryBox.center();
 			}} );
 
-		functions.add( testUserBtn );
+		connectBtn.addClickHandler( new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final HorizontalPanel panel = new HorizontalPanel();
+				queryBox.add( panel );
+
+				final TextBox nameField = new TextBox();
+				nameField.setText("Name");
+				nameField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
+				panel.add( nameField );
+
+				// Focus the cursor on the name field when the app loads
+				nameField.setFocus(true);
+				nameField.selectAll();
+
+				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect" );
+				panel.add( connectButton );
+
+				connectButton.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						if ( nameField.getText().length() == 0 ) {
+							alert.alert( "Please enter a host" );
+							return;
+						}
+
+						final String host = nameField.getText();
+
+						rpcService.connect(host,
+								new AsyncCallback<String>() {
+
+									public void onFailure(Throwable caught) {
+										alert.alert( "RPC Failure" );
+									}
+
+									public void onSuccess(String result) {
+										alert.alert( "Response: " + result );
+
+										if ( result.indexOf( "SUCCESS" ) != -1 ) {
+
+											connectBtn.removeFromParent();
+											queryBox.hide();
+
+											functions.setWidget( 0, 0, new Label( "Connected to " + nameField.getText() ) );
+											functions.setWidget( 1, 0, rebuildBtn );
+											functions.setWidget( 2, 0, testUserBtn );
+										}
+									}
+								});
+						}} );
+
+				queryBox.center();
+			}} );
+
 		RootPanel.get().add( mainPanel );
 	}
 }

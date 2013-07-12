@@ -29,7 +29,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 	private static String KEYSPACE = "kerberos";
 	private static String ACCOUNT_CREDENTIALS = "accountCredential";
 
-	public String greetServer(String input) throws IllegalArgumentException {
+	public String connect(String input) throws IllegalArgumentException {
 
 		// Verify that the input is valid.
 		if (!FieldVerifier.isValidName(input)) {
@@ -53,7 +53,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		if (AstyanaxUtils.getCluster() != null)
 			try {
 
-				response.append("Cluster properties are:\n"
+				response.append("SUCCESS\nCluster properties are:\n"
 						+ AstyanaxUtils.getCluster().describeClusterName()
 						+ "\n"
 						+ AstyanaxUtils.getCluster().describePartitioner()
@@ -72,6 +72,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 			} catch (ConnectionException e) {
 				log.error("Error", e);
+				response.append( "ERROR\n" + e );
 			}
 		else
 			response.append("Problems connecting to " + input);
@@ -166,5 +167,11 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		}
 		
 		return response.toString();
+	}
+
+	@Override
+	public String createSchema() throws IllegalArgumentException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
