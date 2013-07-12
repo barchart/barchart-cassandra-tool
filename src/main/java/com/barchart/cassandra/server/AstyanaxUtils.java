@@ -38,7 +38,7 @@ public class AstyanaxUtils {
 		return loader.getCluster( properties );
 	}
 
-	public static void createKeyspace(String keyspace, String strategyClass,
+	public static boolean createKeyspace(String keyspace, String strategyClass,
 			int replication) {
 
 		Map<String, String> options = new HashMap<String, String>();
@@ -50,27 +50,33 @@ public class AstyanaxUtils {
 		try {
 			getCluster().addKeyspace(keyspaceDef);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
-	public static void dropKeyspace(String keyspace) {
+	public static boolean dropKeyspace(String keyspace) {
 		Cluster cluster = getCluster();
 
 		try {
 			cluster.describeKeyspace(keyspace);
 			cluster.dropKeyspace(keyspace);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
-	public static void dropColumnFamily(String keyspace, String columnFamily) {
+	public static boolean dropColumnFamily(String keyspace, String columnFamily) {
 		try {
 			getCluster().dropColumnFamily(keyspace, columnFamily);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
 	public static Keyspace getKeyspace(String keyspace) {
@@ -81,7 +87,7 @@ public class AstyanaxUtils {
 		}
 	}
 
-	public static void createColumnFamily(String keyspaceName,
+	public static boolean createColumnFamily(String keyspaceName,
 			String familyName, String comparatorType) {
 		try {
 			Cluster cluster = getCluster();
@@ -91,11 +97,13 @@ public class AstyanaxUtils {
 			def.setKeyspace(keyspaceName);
 			cluster.addColumnFamily(def);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
-	public static void createColumnFamily(String keyspaceName,
+	public static boolean createColumnFamily(String keyspaceName,
 			String familyName, String comparatorType,
 			List<ColumnDefinition> columnDefs) {
 		try {
@@ -109,17 +117,21 @@ public class AstyanaxUtils {
 			}
 			cluster.addColumnFamily(def);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
-	public static void createColumnFamily(
+	public static boolean createColumnFamily(
 			ColumnFamilyDefinition columnFamilyDefinition) {
 		try {
 			getCluster().addColumnFamily(columnFamilyDefinition);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 
 	public static ColumnFamilyDefinition makeColumnFamilyDefinition() {
@@ -130,7 +142,7 @@ public class AstyanaxUtils {
 		return getCluster().makeColumnDefinition();
 	}
 
-	public static void createCounterColumnFamily(String keyspaceName,
+	public static boolean createCounterColumnFamily(String keyspaceName,
 			String familyName, String comparatorType) {
 		ColumnFamilyDefinition def = getCluster().makeColumnFamilyDefinition();
 		def.setName(familyName);
@@ -140,7 +152,9 @@ public class AstyanaxUtils {
 		try {
 			getCluster().addColumnFamily(def);
 		} catch (ConnectionException e) {
-			throw new RuntimeException(e);
+			return false;
 		}
+
+		return true;
 	}
 }

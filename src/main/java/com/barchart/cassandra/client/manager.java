@@ -43,7 +43,6 @@ public class manager implements EntryPoint {
 
 		final FlexTable functions = new FlexTable();
 		functions.setStyleName( "flexPanel" );
-		functions.getElement().setAttribute( "cellpadding", "5" );
 
 		mainPanel.add( functions, DockPanel.NORTH );
 
@@ -51,14 +50,25 @@ public class manager implements EntryPoint {
 		connectBtn.setTitle( "Click here to establish a connection to a datacenter" );
 		functions.setWidget( 0, 0, connectBtn );
 
-		final GWTCButton rebuildBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Build structure" );
-		rebuildBtn.setTitle( "Click here to (re)build the data store in a center" );
+		final GWTCButton rebuildBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Build schema" );
+		rebuildBtn.setTitle( "Click here to (re)build the schema" );
 		rebuildBtn.addClickHandler( new ClickHandler() {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				// TODO Auto-generated method stub
-				
+
+				if ( Window.confirm( "Do you really want to proceed? Data will be erased" ) )
+					rpcService.createSchema( new AsyncCallback<String>() {
+	
+						@Override
+						public void onFailure(Throwable caught) {
+							alert.alert( "RPC Failure" );
+						}
+	
+						@Override
+						public void onSuccess(String result) {
+							alert.alert( "Response: " + result );
+						}} );
 			}} );
 
 		final GWTCButton testUserBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "create users" );
@@ -95,8 +105,11 @@ public class manager implements EntryPoint {
 							return;
 						}
 
-						final int numberOfUsers = Integer.parseInt( numberField.getText() );
 						final int batchAmount = Integer.parseInt( batchNumber.getText() );
+						int numberOfUsers = Integer.parseInt( numberField.getText() );
+
+						if ( batchAmount > numberOfUsers )
+							numberOfUsers = batchAmount;
 
 						rpcService.batchInsertUsers( numberOfUsers, batchAmount,
 								new AsyncCallback<String>() {
@@ -124,7 +137,7 @@ public class manager implements EntryPoint {
 				queryBox.add( panel );
 
 				final TextBox nameField = new TextBox();
-				nameField.setText("Name");
+				nameField.setText("54.226.146.6");
 				nameField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
 				panel.add( nameField );
 

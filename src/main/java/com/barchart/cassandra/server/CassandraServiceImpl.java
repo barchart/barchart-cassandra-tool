@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.barchart.cassandra.client.CassandraService;
 import com.barchart.cassandra.shared.FieldVerifier;
+import com.google.common.collect.ImmutableMap;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -27,7 +28,19 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	private static String KEYSPACE = "kerberos";
-	private static String ACCOUNT_CREDENTIALS = "accountCredential";
+
+	// MJS: All column names are lowercase as this is how they are created and SQL3 is case sensitive
+	private static String ACCOUNT_BILLING = "accountbilling";
+	private static String ACCOUNT_CREDENTIALS = "accountcredential";
+
+	private ColumnFamily<String, String> CF_ACCOUNT_CREDENTIALS = new ColumnFamily<String, String>(
+			ACCOUNT_CREDENTIALS,		// Column Family Name
+			StringSerializer.get(),		// Key Serializer
+			StringSerializer.get());	// Column Serializer
+
+	private static String ACCOUNT_INFORMATION = "accountinformation";
+	private static String ACCOUNT_URI_SEARCH = "accounturisearch";
+	private static String ACCOUNT_URI_TO_ID = "accounturitoid";
 
 	public String connect(String input) throws IllegalArgumentException {
 
@@ -96,11 +109,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				.replaceAll(">", "&gt;");
 	}
 
-	private ColumnFamily<String, String> CF_ACCOUNT_CREDENTIALS = new ColumnFamily<String, String>(
-			ACCOUNT_CREDENTIALS, // Column Family Name
-			StringSerializer.get(), // Key Serializer
-			StringSerializer.get()); // Column Serializer
-
 	static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	static Random rnd = new Random();
 
@@ -129,6 +137,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			response.append("\n\nNeed to create " + KEYSPACE);
 
 		else {
+			long latencies = 0;
 			long begin = Calendar.getInstance().getTimeInMillis();
 
 			for ( int i = 0; i < number; i += batchNum ) {
@@ -141,25 +150,26 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 							.putColumn("uri", "http://secure.barchart.com/" + id, null);
 				}
 
-				// TBD - Latency etc
 				try {
 					OperationResult<Void> result = m.execute();
+					latencies += result.getLatency();
 
 				} catch (ConnectionException e) {
 				}
 			}
 
 			long end = Calendar.getInstance().getTimeInMillis();
-			response.append( "\nTotal time was " + ( end - begin ) / 1000 + " sec" );
+			response.append( "\nTotal time was " + ( end - begin ) / 1000 + " sec\nAverage latency of a batch was " + latencies / ( number / batchNum ) + " ms" );
 		}
 
 		try {
 			OperationResult<CqlResult<String, String>> result
 				= keyspace.prepareQuery( CF_ACCOUNT_CREDENTIALS )
-					.withCql("SELECT count(*) FROM \"" + ACCOUNT_CREDENTIALS + "\";" )
+					.withCql("SELECT count(*) FROM " + ACCOUNT_CREDENTIALS + " LIMIT 10000000;" )
 					.execute();
 
-			response.append( "\n" + CF_ACCOUNT_CREDENTIALS + " now holds " + result.getResult().getNumber() + " entries" );
+			// MJS: Pretty is ain't
+			response.append( "\n\n" + CF_ACCOUNT_CREDENTIALS + " now holds " + result.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
 
 		} catch (ConnectionException e) {
 			log.error("Error", e);
@@ -170,8 +180,58 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 	}
 
 	@Override
-	public String createSchema() throws IllegalArgumentException {
-		// TODO Auto-generated method stub
-		return null;
+	public String createSchema() {
+
+		StringBuilder response = new StringBuilder();
+
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_BILLING );
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_CREDENTIALS );
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_INFORMATION );
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_URI_SEARCH );
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_URI_TO_ID );
+		AstyanaxUtils.dropKeyspace( KEYSPACE );
+
+		response.append( "Dropped all the column families and keyspace\n" );
+
+		AstyanaxUtils.createKeyspace( KEYSPACE, AstyanaxUtils.SimpleStrategy, 2 );
+
+		try {
+			Keyspace keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSPACE);
+
+			keyspace.createColumnFamily(CF_ACCOUNT_CREDENTIALS, ImmutableMap.<String, Object>builder()
+
+					// MJS: Overriding types to UTF-8
+					.put("default_validation_class", "UTF8Type")
+			        .put("key_validation_class",     "UTF8Type")
+			        .put("comparator_type",          "UTF8Type")
+
+			        // MJS: Indexes
+			        .put("column_metadata", ImmutableMap.<String, Object>builder()
+				            .put("key", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "key")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("id", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "id")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("uri", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "uri")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .build())
+				        .build());
+
+			response.append( "Regenerated all the column families and keyspace\n" );
+
+		} catch (ConnectionException e) {
+			log.error("Error", e);
+			response.append( "\n" + e );
+		}
+	    
+		return response.toString();
 	}
 }

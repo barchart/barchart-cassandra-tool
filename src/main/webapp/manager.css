@@ -32,3 +32,10 @@ h1 {
 #closeButton {
   margin: 15px 6px 6px;
 }
+
+.flexPanel
+{
+	background-color			:	#ccc;
+	margin						:	1px;
+	border						:	1px solid #009;
+}
