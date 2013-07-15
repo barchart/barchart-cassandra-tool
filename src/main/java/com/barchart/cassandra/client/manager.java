@@ -127,6 +127,84 @@ public class manager implements EntryPoint {
 				queryBox.center();
 			}} );
 
+		final GWTCButton modifyUserBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "modify users" );
+		modifyUserBtn.setTitle( "Click here to modify test users currently in the data center and benchmark it" );
+		modifyUserBtn.addClickHandler( new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final VerticalPanel panel = new VerticalPanel();
+				queryBox.add( panel );
+
+				panel.add( new Label( "Number of users" ) );
+				
+				final TextBox numberField = new TextBox();
+				panel.add( numberField );
+
+				panel.add( new Label( "Batch amount" ) );
+
+				final TextBox batchNumber = new TextBox();
+				panel.add( batchNumber );
+
+				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Start" );
+				panel.add( connectButton );
+
+				connectButton.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						if ( numberField.getText().length() == 0 || batchNumber.getText().length() == 0 ) {
+							alert.alert( "Please enter valid numbers" );
+							return;
+						}
+
+						final int batchAmount = Integer.parseInt( batchNumber.getText() );
+						int numberOfUsers = Integer.parseInt( numberField.getText() );
+
+						if ( batchAmount > numberOfUsers )
+							numberOfUsers = batchAmount;
+
+						rpcService.batchInsertUsers( numberOfUsers, batchAmount,
+								new AsyncCallback<String>() {
+
+									public void onFailure(Throwable caught) {
+										alert.alert( "RPC Failure" );
+									}
+
+									public void onSuccess(String result) {
+										alert.alert( "Response: " + result );
+									}
+								});
+						}} );
+
+				queryBox.center();
+			}} );
+
+		final GWTCButton disconnectBtn = new GWTCButton();
+		disconnectBtn.setType( GWTCButton.BUTTON_TYPE_1 );
+		disconnectBtn.setTitle( "Click here to disconnect from a datacenter" );
+		disconnectBtn.addClickHandler( new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent arg0) {
+				rpcService.disconnect( new AsyncCallback<String>() {
+
+					public void onFailure(Throwable caught) {
+						alert.alert( "RPC Failure" );
+					}
+
+					public void onSuccess(String result) {
+						alert.alert( "Response: " + result );
+
+						functions.clear();
+						functions.setWidget( 0, 0, connectBtn );
+					}
+				});
+			}} );
+
 		connectBtn.addClickHandler( new ClickHandler() {
 
 			@Override
@@ -161,26 +239,29 @@ public class manager implements EntryPoint {
 						final String host = nameField.getText();
 
 						rpcService.connect(host,
-								new AsyncCallback<String>() {
+							new AsyncCallback<String>() {
 
-									public void onFailure(Throwable caught) {
-										alert.alert( "RPC Failure" );
+								public void onFailure(Throwable caught) {
+									alert.alert( "RPC Failure" );
+								}
+
+								public void onSuccess(String result) {
+									alert.alert( "Response: " + result );
+
+									if ( result.indexOf( "SUCCESS" ) != -1 ) {
+
+										connectBtn.removeFromParent();
+										queryBox.hide();
+
+										disconnectBtn.setText(  "Disconnect from " + nameField.getText() );
+
+										functions.setWidget( 0, 0, disconnectBtn );
+										functions.setWidget( 1, 0, rebuildBtn );
+										functions.setWidget( 2, 0, testUserBtn );
+										functions.setWidget( 3, 0, modifyUserBtn );
 									}
-
-									public void onSuccess(String result) {
-										alert.alert( "Response: " + result );
-
-										if ( result.indexOf( "SUCCESS" ) != -1 ) {
-
-											connectBtn.removeFromParent();
-											queryBox.hide();
-
-											functions.setWidget( 0, 0, new Label( "Connected to " + nameField.getText() ) );
-											functions.setWidget( 1, 0, rebuildBtn );
-											functions.setWidget( 2, 0, testUserBtn );
-										}
-									}
-								});
+								}
+							});
 						}} );
 
 				queryBox.center();

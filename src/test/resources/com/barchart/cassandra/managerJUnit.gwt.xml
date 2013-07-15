@@ -4,6 +4,6 @@
   <inherits name='com.barchart.cassandra.manager' />
 
   <!-- Specify the path to any remote services.                   -->
-  <servlet path="/manager/greet" class="com.barchart.cassandra.server.GreetingServiceImpl" />
+  <servlet path="/manager/greet" class="com.barchart.cassandra.server.CassandraServiceImpl" />
 
 </module>

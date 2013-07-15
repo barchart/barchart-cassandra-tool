@@ -16,7 +16,9 @@ import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.CqlResult;
+import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.RangeBuilder;
 
 /**
  * The server side implementation of the RPC service.
@@ -469,5 +471,142 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		}
 	    
 		return response.toString();
+	}
+
+	@Override
+	public String batchModifyUsers(Integer number, Integer batchNum) {
+		StringBuilder response = new StringBuilder();
+		Keyspace keyspace = null;
+
+		try {
+			keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSPACE);
+
+		} catch (ConnectionException e) {
+			log.error("Error", e);
+		}
+
+		if ( keyspace == null )
+			response.append("\n\nNeed to create " + KEYSPACE);
+
+		else {
+			long latencies = 0;
+			long begin = Calendar.getInstance().getTimeInMillis();
+
+			// MJS: Get the keys for all the users
+			Rows<String, String> rows = null;
+
+			try {
+				rows = keyspace.prepareQuery(CF_ACCOUNT_INFORMATION)
+						  .getAllRows()
+						  .withColumnRange(new RangeBuilder().setLimit(0).build())
+						  .execute().getResult();
+
+			} catch (ConnectionException e1) {
+				response.append( "\n\nCouldn't get user keys" );
+				return response.toString();
+			}
+
+			String[] ids = null;
+			ids = rows.getKeys().toArray( ids );
+
+			// MJS: Here we redefine key parameters and affect to the max the given users
+			for ( int i = 0; i < number; i += batchNum ) {
+				MutationBatch m = keyspace.prepareMutationBatch();
+
+				for ( int j = 0; j < batchNum; j++ ) {
+
+					final String id = ids[new Random().nextInt( ids.length )];
+					final String firstName = randomString(32);
+					final String lastName = randomString(32);
+					final String addressCity = randomString(32);
+					final String addressCompany = randomString(32);
+					final String addressCountry = randomString(32);
+					final String addressState = randomString(32);
+					final String addressStreet = randomString(32);
+					final String addressZip = randomString(32);
+
+					m.withRow(CF_ACCOUNT_CREDENTIALS, randomString(32))
+							.putColumn("id", id, null)
+							.putColumn("uri",
+									"http://secure.barchart.com/" + lastName + "." + firstName, null);
+
+					m.withRow(CF_ACCOUNT_INFORMATION, randomString(32))
+							.putColumn("id_info", id, null)
+							.putColumn("address_city", addressCity, null)
+							.putColumn("address_company", addressCompany,
+									null)
+							.putColumn("address_country", addressCountry,
+									null)
+							.putColumn("address_state", addressState, null)
+							.putColumn("address_street", addressStreet, null)
+							.putColumn("address_zip", addressZip, null)
+							.putColumn("contact_chat_gtalk", randomString(32),
+									null)
+							.putColumn("contact_chat_icq", randomString(32),
+									null)
+							.putColumn("contact_chat_jabber", randomString(32),
+									null)
+							.putColumn("contact_email_main", randomString(32),
+									null)
+							.putColumn("contact_email_next", randomString(32),
+									null)
+							.putColumn("contact_phone_business",
+									randomString(32), null)
+							.putColumn("contact_phone_fax", randomString(32),
+									null)
+							.putColumn("contact_phone_home", randomString(32),
+									null)
+							.putColumn("contact_phone_mobile",
+									randomString(32), null)
+							.putColumn("name_first", firstName, null)
+							.putColumn("name_last", lastName, null);
+
+					m.withRow(CF_ACCOUNT_BILLING, randomString(32))
+					.putColumn("id_bill", id, null)
+					.putColumn("address_city", addressCity, null)
+					.putColumn("address_company", addressCompany,
+							null)
+					.putColumn("address_country", addressCountry,
+							null)
+					.putColumn("address_state", addressState, null)
+					.putColumn("address_street", addressStreet, null)
+					.putColumn("address_zip", addressZip, null)
+					.putColumn("card_code", randomString(32),
+							null)
+					.putColumn("card_expire", randomString(32),
+							null)
+					.putColumn("card_number", randomString(32),
+							null)
+					.putColumn("card_type", randomString(32),
+							null)
+					.putColumn("name_full", firstName + " " + lastName,
+							null);
+
+					m.withRow( CF_ACCOUNT_URI_SEARCH, randomString(32) )
+					.putColumn( "user", lastName + "." + firstName, null )
+					.putColumn( "uri_search", "http://secure.barchart.com/" + lastName + "." + firstName, null )
+					.putColumn( "id_search", id, null );
+				}
+
+				try {
+					OperationResult<Void> result = m.execute();
+					latencies += result.getLatency();
+
+				} catch (ConnectionException e) {
+				}
+			}
+
+			long end = Calendar.getInstance().getTimeInMillis();
+			response.append( "\nTotal time was " + ( end - begin ) / 1000 + " sec\nAverage latency of a batch was " + latencies / ( number / batchNum ) + " ms" );
+		}
+		
+		return response.toString();
+	}
+
+	@Override
+	public String disconnect() {
+		ClusterLoader.endCluster();
+
+		return "Completed disconnection";
 	}
 }
