@@ -1,2 +1,0 @@
-serviceClass: com.barchart.cassandra.client.GreetingService
-path: 07C4D837684D4AB876C6FCC5E5371A69.gwt.rpc

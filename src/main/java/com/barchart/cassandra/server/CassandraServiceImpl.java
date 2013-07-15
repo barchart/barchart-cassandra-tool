@@ -31,6 +31,12 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 	// MJS: All column names are lowercase as this is how they are created and SQL3 is case sensitive
 	private static String ACCOUNT_BILLING = "accountbilling";
+
+	private ColumnFamily<String, String> CF_ACCOUNT_BILLING = new ColumnFamily<String, String>(
+			ACCOUNT_BILLING,			// Column Family Name
+			StringSerializer.get(),		// Key Serializer
+			StringSerializer.get());	// Column Serializer
+
 	private static String ACCOUNT_CREDENTIALS = "accountcredential";
 
 	private ColumnFamily<String, String> CF_ACCOUNT_CREDENTIALS = new ColumnFamily<String, String>(
@@ -39,8 +45,18 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			StringSerializer.get());	// Column Serializer
 
 	private static String ACCOUNT_INFORMATION = "accountinformation";
+
+	private ColumnFamily<String, String> CF_ACCOUNT_INFORMATION = new ColumnFamily<String, String>(
+			ACCOUNT_INFORMATION,		// Column Family Name
+			StringSerializer.get(),		// Key Serializer
+			StringSerializer.get());	// Column Serializer
+
 	private static String ACCOUNT_URI_SEARCH = "accounturisearch";
-	private static String ACCOUNT_URI_TO_ID = "accounturitoid";
+
+	private ColumnFamily<String, String> CF_ACCOUNT_URI_SEARCH = new ColumnFamily<String, String>(
+			ACCOUNT_URI_SEARCH,		// Column Family Name
+			StringSerializer.get(),		// Key Serializer
+			StringSerializer.get());	// Column Serializer
 
 	public String connect(String input) throws IllegalArgumentException {
 
@@ -83,7 +99,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					response.append("\n\nKeyspace accountCredential found with properties\n"
 							+ keyspace.describeSchemaVersions());
 
-			} catch (ConnectionException e) {
+			} catch ( Exception e ) {
 				log.error("Error", e);
 				response.append( "ERROR\n" + e );
 			}
@@ -144,10 +160,78 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				MutationBatch m = keyspace.prepareMutationBatch();
 
 				for ( int j = 0; j < batchNum; j++ ) {
+
 					final String id = randomString(32);
-					m.withRow(CF_ACCOUNT_CREDENTIALS, randomString(32) )
+					final String firstName = randomString(32);
+					final String lastName = randomString(32);
+					final String addressCity = randomString(32);
+					final String addressCompany = randomString(32);
+					final String addressCountry = randomString(32);
+					final String addressState = randomString(32);
+					final String addressStreet = randomString(32);
+					final String addressZip = randomString(32);
+
+					m.withRow(CF_ACCOUNT_CREDENTIALS, randomString(32))
 							.putColumn("id", id, null)
-							.putColumn("uri", "http://secure.barchart.com/" + id, null);
+							.putColumn("uri",
+									"http://secure.barchart.com/" + lastName + "." + firstName, null);
+
+					m.withRow(CF_ACCOUNT_INFORMATION, randomString(32))
+							.putColumn("id_info", id, null)
+							.putColumn("address_city", addressCity, null)
+							.putColumn("address_company", addressCompany,
+									null)
+							.putColumn("address_country", addressCountry,
+									null)
+							.putColumn("address_state", addressState, null)
+							.putColumn("address_street", addressStreet, null)
+							.putColumn("address_zip", addressZip, null)
+							.putColumn("contact_chat_gtalk", randomString(32),
+									null)
+							.putColumn("contact_chat_icq", randomString(32),
+									null)
+							.putColumn("contact_chat_jabber", randomString(32),
+									null)
+							.putColumn("contact_email_main", randomString(32),
+									null)
+							.putColumn("contact_email_next", randomString(32),
+									null)
+							.putColumn("contact_phone_business",
+									randomString(32), null)
+							.putColumn("contact_phone_fax", randomString(32),
+									null)
+							.putColumn("contact_phone_home", randomString(32),
+									null)
+							.putColumn("contact_phone_mobile",
+									randomString(32), null)
+							.putColumn("name_first", firstName, null)
+							.putColumn("name_last", lastName, null);
+
+					m.withRow(CF_ACCOUNT_BILLING, randomString(32))
+					.putColumn("id_bill", id, null)
+					.putColumn("address_city", addressCity, null)
+					.putColumn("address_company", addressCompany,
+							null)
+					.putColumn("address_country", addressCountry,
+							null)
+					.putColumn("address_state", addressState, null)
+					.putColumn("address_street", addressStreet, null)
+					.putColumn("address_zip", addressZip, null)
+					.putColumn("card_code", randomString(32),
+							null)
+					.putColumn("card_expire", randomString(32),
+							null)
+					.putColumn("card_number", randomString(32),
+							null)
+					.putColumn("card_type", randomString(32),
+							null)
+					.putColumn("name_full", firstName + " " + lastName,
+							null);
+
+					m.withRow( CF_ACCOUNT_URI_SEARCH, randomString(32) )
+					.putColumn( "user", lastName + "." + firstName, null )
+					.putColumn( "uri_search", "http://secure.barchart.com/" + lastName + "." + firstName, null )
+					.putColumn( "id_search", id, null );
 				}
 
 				try {
@@ -163,13 +247,21 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		}
 
 		try {
-			OperationResult<CqlResult<String, String>> result
+			final OperationResult<CqlResult<String, String>> result1
 				= keyspace.prepareQuery( CF_ACCOUNT_CREDENTIALS )
 					.withCql("SELECT count(*) FROM " + ACCOUNT_CREDENTIALS + " LIMIT 10000000;" )
 					.execute();
 
 			// MJS: Pretty is ain't
-			response.append( "\n\n" + CF_ACCOUNT_CREDENTIALS + " now holds " + result.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
+			response.append( "\n\n" + ACCOUNT_CREDENTIALS + " now holds " + result1.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
+
+			final OperationResult<CqlResult<String, String>> result2
+			= keyspace.prepareQuery( CF_ACCOUNT_INFORMATION )
+				.withCql("SELECT count(*) FROM " + ACCOUNT_INFORMATION + " LIMIT 10000000;" )
+				.execute();
+
+			// MJS: Pretty is ain't
+			response.append( "\n\n" + ACCOUNT_INFORMATION + " now holds " + result2.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
 
 		} catch (ConnectionException e) {
 			log.error("Error", e);
@@ -188,7 +280,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_CREDENTIALS );
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_INFORMATION );
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_URI_SEARCH );
-		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_URI_TO_ID );
 		AstyanaxUtils.dropKeyspace( KEYSPACE );
 
 		response.append( "Dropped all the column families and keyspace\n" );
@@ -196,7 +287,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		AstyanaxUtils.createKeyspace( KEYSPACE, AstyanaxUtils.SimpleStrategy, 2 );
 
 		try {
-			Keyspace keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSPACE);
+			final Keyspace keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSPACE);
 
 			keyspace.createColumnFamily(CF_ACCOUNT_CREDENTIALS, ImmutableMap.<String, Object>builder()
 
@@ -220,6 +311,151 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				            .put("uri", ImmutableMap.<String, Object>builder()
 				                .put("validation_class", "UTF8Type")
 				                .put("index_name",       "uri")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .build())
+				        .build());
+
+			keyspace.createColumnFamily(CF_ACCOUNT_INFORMATION, ImmutableMap.<String, Object>builder()
+
+					// MJS: Overriding types to UTF-8
+					.put("default_validation_class", "UTF8Type")
+			        .put("key_validation_class",     "UTF8Type")
+			        .put("comparator_type",          "UTF8Type")
+
+			        // MJS: Indexes
+			        .put("column_metadata", ImmutableMap.<String, Object>builder()
+				            .put("id_info", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "id_info")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("address_city", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_company", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_country", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_state", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_street", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_zip", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_chat_gtalk", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_chat_icq", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_chat_jabber", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_email_main", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_email_next", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_phone_business", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_phone_fax", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_phone_home", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("contact_phone_mobile", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("name_first", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("name_last", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .build())
+				        .build());
+
+			keyspace.createColumnFamily(CF_ACCOUNT_BILLING, ImmutableMap.<String, Object>builder()
+
+					// MJS: Overriding types to UTF-8
+					.put("default_validation_class", "UTF8Type")
+			        .put("key_validation_class",     "UTF8Type")
+			        .put("comparator_type",          "UTF8Type")
+
+			        // MJS: Indexes
+			        .put("column_metadata", ImmutableMap.<String, Object>builder()
+				            .put("id_bill", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "id_bill")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("address_city", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_company", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_country", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_state", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_street", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("address_zip", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("card_code", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("card_expire", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("card_number", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("card_type", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .put("full_name", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .build())
+				        .build());
+
+			keyspace.createColumnFamily(CF_ACCOUNT_URI_SEARCH, ImmutableMap.<String, Object>builder()
+
+					// MJS: Overriding types to UTF-8
+					.put("default_validation_class", "UTF8Type")
+			        .put("key_validation_class",     "UTF8Type")
+			        .put("comparator_type",          "UTF8Type")
+
+			        // MJS: Indexes
+			        .put("column_metadata", ImmutableMap.<String, Object>builder()
+				            .put("user", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "user")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("id_search", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "id_search")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("uri_search", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "uri_search")
 				                .put("index_type",       "KEYS")
 				                .build())
 				            .build())
