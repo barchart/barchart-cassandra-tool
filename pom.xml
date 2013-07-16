@@ -127,7 +127,6 @@
 					<configuration>
 						<runTarget>manager.html</runTarget>
 						<hostedWebapp>${webappDirectory}</hostedWebapp>
-						<i18nMessagesBundle>com.barchart.cassandra.client.Messages</i18nMessagesBundle>
 					</configuration>
 				</plugin>
 

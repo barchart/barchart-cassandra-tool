@@ -53,7 +53,7 @@ public class GwtTestmanager extends GWTTestCase {
     delayTestFinish(10000);
 
     // Send a request to the server.
-    greetingService.connect("GWT User", new AsyncCallback<String>() {
+    greetingService.connect("127.0.0.1", "Test Cluster", new AsyncCallback<String>() {
       public void onFailure(Throwable caught) {
         // The request resulted in an unexpected error.
         fail("Request failure: " + caught.getMessage());

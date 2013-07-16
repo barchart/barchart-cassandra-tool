@@ -10,6 +10,7 @@ import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.AstyanaxContext.Builder;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
@@ -28,36 +29,37 @@ public class ClusterLoader {
 			int maxTimeoutCount, int connectTimeout, int socketTimeout) {
 
 		log.info("******  Create Cluster [" + clusterName + "]  ******");
-
-		// init builder
-		ConnectionPoolConfigurationImpl connectionPoolConfiguration = new ConnectionPoolConfigurationImpl(
-				connectionPoolName);
 		log.info("connectionPoolName :" + connectionPoolName);
-
-		connectionPoolConfiguration.setSeeds(seedHosts);
 		log.info("seedHosts          :" + seedHosts);
-
-		connectionPoolConfiguration.setMaxConns(maxConns);
 		log.info("maxConns           :" + maxConns);
-
-		connectionPoolConfiguration.setMaxConnsPerHost(maxConnsPerHost);
 		log.info("maxConnsPerHost    :" + maxConnsPerHost);
-
-		connectionPoolConfiguration.setConnectTimeout(connectTimeout);
 		log.info("connectTimeout     :" + connectTimeout);
-
-		connectionPoolConfiguration.setSocketTimeout(socketTimeout);
 		log.info("socketTimeout      :" + socketTimeout);
-
-		connectionPoolConfiguration.setMaxTimeoutCount(maxTimeoutCount);
 		log.info("maxTimeoutCount    :" + maxTimeoutCount);
 
-		Builder builder = new AstyanaxContext.Builder();
-		builder.forCluster(clusterName).withAstyanaxConfiguration(
-				new AstyanaxConfigurationImpl()
-						.setDiscoveryType(NodeDiscoveryType.NONE));
-		builder.withConnectionPoolConfiguration(connectionPoolConfiguration);
-		builder.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
+		// init builder
+		ConnectionPoolConfigurationImpl connectionPoolConfiguration =
+			new ConnectionPoolConfigurationImpl( connectionPoolName )
+				.setSeeds(seedHosts)
+				.setMaxConns(maxConns)
+				.setMaxConnsPerHost(maxConnsPerHost)
+				.setConnectTimeout(connectTimeout)
+				.setSocketTimeout(socketTimeout)
+				.setMaxTimeoutCount(maxTimeoutCount)
+		
+				// MJS: Added those to solidify the connection as I get a timeout quite often
+				.setLatencyAwareUpdateInterval(10000)  // Will resort hosts per token partition every 10 seconds
+		        .setLatencyAwareResetInterval(10000) // Will clear the latency every 10 seconds. In practice I set this to 0 which is the default. It's better to be 0.
+		        .setLatencyAwareBadnessThreshold(2) // Will sort hosts if a host is more than 100% slower than the best and always assign connections to the fastest host, otherwise will use round robin
+		        .setLatencyAwareWindowSize(100); // Uses last 100 latency samples. These samples are in a FIFO q and will just cycle themselves.
+
+		Builder builder = new AstyanaxContext.Builder()
+			.forCluster(clusterName)
+			.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()      
+	        .setDiscoveryType(NodeDiscoveryType.NONE)					// https://github.com/Netflix/astyanax/issues/127
+	        .setConnectionPoolType(ConnectionPoolType.BAG))				// https://github.com/Netflix/astyanax/issues/127
+			.withConnectionPoolConfiguration(connectionPoolConfiguration)
+			.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
 
 		// get cluster
 		clusterContext = builder

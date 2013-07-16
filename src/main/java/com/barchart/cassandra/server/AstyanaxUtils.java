@@ -19,11 +19,11 @@ public class AstyanaxUtils {
 	@SuppressWarnings("serial")
 	private static Map<String, String> properties = new HashMap<String, String>() {{
 		put( "cluster", "Test Cluster" );
-		put( "seeds", "ec2-54-226-146-6.compute-1.amazonaws.com" );
-		put( "connection.pool.name", "MyPool" );
+		put( "seeds", "ec2-107-21-142-158.compute-1.amazonaws.com" );
+		put( "connection.pool.name", "TestPool" );
 		put ("max.conns", "100" );
-		put( "max.timeout.count", "3" );
-		put( "max.conns.per.host", "1" );
+		put( "max.timeout.count", "10" );
+		put( "max.conns.per.host", "10" );
 		put( "connect.timeout", "60000" );
 		put( "socket.timeout", "60000" );
 	}};

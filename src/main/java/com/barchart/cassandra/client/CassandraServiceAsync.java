@@ -4,7 +4,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public interface CassandraServiceAsync {
 
-	void connect(String name, AsyncCallback<String> callback);
+	void connect(String seed, String cluster, AsyncCallback<String> callback);
 
 	void disconnect(AsyncCallback<String> callback);
 

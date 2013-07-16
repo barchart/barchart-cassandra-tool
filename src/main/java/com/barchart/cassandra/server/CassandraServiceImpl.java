@@ -60,10 +60,10 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			StringSerializer.get(),		// Key Serializer
 			StringSerializer.get());	// Column Serializer
 
-	public String connect(String input) throws IllegalArgumentException {
+	public String connect(String seed, String cluster) {
 
 		// Verify that the input is valid.
-		if (!FieldVerifier.isValidName(input)) {
+		if (!FieldVerifier.isValidName(seed)) {
 
 			// If the input is not valid, throw an IllegalArgumentException back
 			// to the client.
@@ -76,10 +76,11 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 		// Escape data from the client to avoid cross-site script
 		// vulnerabilities.
-		input = escapeHtml(input);
+		seed = escapeHtml(seed);
 		userAgent = escapeHtml(userAgent);
 
-		AstyanaxUtils.setProperty("seeds", input);
+		AstyanaxUtils.setProperty("seeds", seed);
+		AstyanaxUtils.setProperty("cluster", cluster);
 
 		if (AstyanaxUtils.getCluster() != null)
 			try {
@@ -106,7 +107,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				response.append( "ERROR\n" + e );
 			}
 		else
-			response.append("Problems connecting to " + input);
+			response.append("Problems connecting to " + seed);
 
 		return response.toString();
 	}

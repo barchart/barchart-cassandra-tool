@@ -211,17 +211,24 @@ public class manager implements EntryPoint {
 			public void onClick(ClickEvent event) {
 
 				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
-				final HorizontalPanel panel = new HorizontalPanel();
+				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
-				final TextBox nameField = new TextBox();
-				nameField.setText("54.226.146.6");
-				nameField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
-				panel.add( nameField );
+				panel.add( new Label( "seed" ) );
+				final TextBox seedField = new TextBox();
+				seedField.setText("127.0.0.1");
+				seedField.setWidth( "" + Window.getClientWidth() / 8 + "px" );
+				panel.add( seedField );
+
+				panel.add( new Label( "cluster" ) );
+				final TextBox clusterField = new TextBox();
+				clusterField.setText("Test Cluster");
+				clusterField.setWidth( "" + Window.getClientWidth() / 8 + "px" );
+				panel.add( clusterField );
 
 				// Focus the cursor on the name field when the app loads
-				nameField.setFocus(true);
-				nameField.selectAll();
+				seedField.setFocus(true);
+				seedField.selectAll();
 
 				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Connect" );
 				panel.add( connectButton );
@@ -231,14 +238,12 @@ public class manager implements EntryPoint {
 					@Override
 					public void onClick(ClickEvent event) {
 
-						if ( nameField.getText().length() == 0 ) {
+						if ( seedField.getText().length() == 0 ) {
 							alert.alert( "Please enter a host" );
 							return;
 						}
 
-						final String host = nameField.getText();
-
-						rpcService.connect(host,
+						rpcService.connect(seedField.getText(), clusterField.getText(),
 							new AsyncCallback<String>() {
 
 								public void onFailure(Throwable caught) {
@@ -253,7 +258,7 @@ public class manager implements EntryPoint {
 										connectBtn.removeFromParent();
 										queryBox.hide();
 
-										disconnectBtn.setText(  "Disconnect from " + nameField.getText() );
+										disconnectBtn.setText(  "Disconnect from " + seedField.getText() );
 
 										functions.setWidget( 0, 0, disconnectBtn );
 										functions.setWidget( 1, 0, rebuildBtn );

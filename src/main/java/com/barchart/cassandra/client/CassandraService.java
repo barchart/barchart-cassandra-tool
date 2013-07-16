@@ -8,7 +8,7 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
  */
 @RemoteServiceRelativePath("greet")
 public interface CassandraService extends RemoteService {
-	String connect(String name);
+	String connect(String seed, String cluster);
 	String disconnect();
 	String createSchema();
 	String batchInsertUsers(Integer number, Integer batchNum);

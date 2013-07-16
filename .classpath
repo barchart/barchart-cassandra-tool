@@ -6,6 +6,12 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" output="target/barchart-cassandra-1.0-SNAPSHOT/WEB-INF/classes" path="src/main/resources">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
 		<attributes>
 			<attribute name="optional" value="true"/>
@@ -39,5 +45,5 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="C:/Users/m-sokolowski/AppData/Local/Genuitec/Common/plugins/com.google.gwt.eclipse.sdkbundle_2.5.1/gwt-2.5.1/validation-api-1.0.0.GA-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Users/m-sokolowski/AppData/Local/Genuitec/Common/plugins/com.google.gwt.eclipse.sdkbundle_2.5.1/gwt-2.5.1/validation-api-1.0.0.GA.jar" sourcepath="C:/Users/m-sokolowski/AppData/Local/Genuitec/Common/plugins/com.google.gwt.eclipse.sdkbundle_2.5.1/gwt-2.5.1/validation-api-1.0.0.GA-sources.jar"/>
-	<classpathentry kind="output" path="target/barchart-cassandra-1.0-SNAPSHOT/WEB-INF/classes"/>
+	<classpathentry kind="output" path="src/main/webapp/WEB-INF/classes"/>
 </classpath>
