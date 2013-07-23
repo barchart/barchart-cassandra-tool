@@ -18,6 +18,7 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 public class ClusterLoader {
 
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	private static Builder builder = null;
 	private static AstyanaxContext<Cluster> clusterContext = null;
 	private static Cluster cluster = null;
 
@@ -53,21 +54,19 @@ public class ClusterLoader {
 		        .setLatencyAwareBadnessThreshold(2) // Will sort hosts if a host is more than 100% slower than the best and always assign connections to the fastest host, otherwise will use round robin
 		        .setLatencyAwareWindowSize(100); // Uses last 100 latency samples. These samples are in a FIFO q and will just cycle themselves.
 
-		Builder builder = new AstyanaxContext.Builder()
-			.forCluster(clusterName)
-			.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()      
-	        .setDiscoveryType(NodeDiscoveryType.NONE)					// https://github.com/Netflix/astyanax/issues/127
-	        .setConnectionPoolType(ConnectionPoolType.BAG))				// https://github.com/Netflix/astyanax/issues/127
-			.withConnectionPoolConfiguration(connectionPoolConfiguration)
-			.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
+		if ( builder == null )
+			builder = new AstyanaxContext.Builder()
+				.forCluster(clusterName)
+				.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()      
+		        	.setDiscoveryType(NodeDiscoveryType.TOKEN_AWARE)							// https://github.com/Netflix/astyanax/issues/127
+		        	.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE)						// https://github.com/Netflix/astyanax/issues/127
+		        	.setCqlVersion("3.0.0")
+					.setTargetCassandraVersion("1.2"))
+				.withConnectionPoolConfiguration(connectionPoolConfiguration)
+				.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
 
 		// get cluster
-		clusterContext = builder
-				.withAstyanaxConfiguration(
-						new AstyanaxConfigurationImpl()      
-							.setCqlVersion("3.0.0")
-							.setTargetCassandraVersion("1.2"))
-				.buildCluster(ThriftFamilyFactory.getInstance());
+		clusterContext = builder.buildCluster(ThriftFamilyFactory.getInstance());
 
 		clusterContext.start();
 		Cluster cluster = clusterContext.getClient();

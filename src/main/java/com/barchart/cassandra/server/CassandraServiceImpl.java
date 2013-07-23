@@ -32,31 +32,38 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 	private static String KEYSPACE = "kerberos";
 
 	// MJS: All column names are lowercase as this is how they are created and SQL3 is case sensitive
-	private static String ACCOUNT_BILLING = "accountbilling";
+	private static String ACCOUNT_BILLING = "account_billing";
 
 	private ColumnFamily<String, String> CF_ACCOUNT_BILLING = new ColumnFamily<String, String>(
 			ACCOUNT_BILLING,			// Column Family Name
 			StringSerializer.get(),		// Key Serializer
 			StringSerializer.get());	// Column Serializer
 
-	private static String ACCOUNT_CREDENTIALS = "accountcredential";
+	private static String ACCOUNT_CREDENTIALS = "account_credential";
 
 	private ColumnFamily<String, String> CF_ACCOUNT_CREDENTIALS = new ColumnFamily<String, String>(
 			ACCOUNT_CREDENTIALS,		// Column Family Name
 			StringSerializer.get(),		// Key Serializer
 			StringSerializer.get());	// Column Serializer
 
-	private static String ACCOUNT_INFORMATION = "accountinformation";
+	private static String ACCOUNT_INFORMATION = "account_information";
 
 	private ColumnFamily<String, String> CF_ACCOUNT_INFORMATION = new ColumnFamily<String, String>(
 			ACCOUNT_INFORMATION,		// Column Family Name
 			StringSerializer.get(),		// Key Serializer
 			StringSerializer.get());	// Column Serializer
 
-	private static String ACCOUNT_URI_SEARCH = "accounturisearch";
+	private static String ACCOUNT_URI_SEARCH = "account_uri_search";
 
 	private ColumnFamily<String, String> CF_ACCOUNT_URI_SEARCH = new ColumnFamily<String, String>(
-			ACCOUNT_URI_SEARCH,		// Column Family Name
+			ACCOUNT_URI_SEARCH,			// Column Family Name
+			StringSerializer.get(),		// Key Serializer
+			StringSerializer.get());	// Column Serializer
+
+	private static String PROFILE_INFORMATION = "profile_information";
+
+	private ColumnFamily<String, String> CF_PROFILE_INFORMATION = new ColumnFamily<String, String>(
+			PROFILE_INFORMATION,		// Column Family Name
 			StringSerializer.get(),		// Key Serializer
 			StringSerializer.get());	// Column Serializer
 
@@ -136,6 +143,16 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		for (int i = 0; i < len; i++)
 			sb.append(AB.charAt(rnd.nextInt(AB.length())));
 		return sb.toString();
+	}
+
+	static private String[] plugins = new String[1000];
+	static private String[] objects = new String[100];
+	{
+		for ( int i = 0; i < plugins.length; i++ )
+			plugins[i] = randomString(32);;
+
+		for ( int i = 0; i < objects.length; i++ )
+			objects[i] = randomString(32);
 	}
 
 	@Override
@@ -235,6 +252,19 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					.putColumn( "user", lastName + "." + firstName, null )
 					.putColumn( "uri_search", "http://secure.barchart.com/" + lastName + "." + firstName, null )
 					.putColumn( "id_search", id, null );
+
+					for ( int profile = 0; profile < 10; profile++ ) {
+
+						final String profileId = randomString(32);
+
+						for ( int setting = 0; setting < 100; setting++ )
+							m.withRow( CF_PROFILE_INFORMATION, randomString(32) )
+							.putColumn( "account_id", id, null )
+							.putColumn( "profile_id", profileId, null )
+							.putColumn( "plugin_id", plugins[rnd.nextInt( plugins.length )], null )
+							.putColumn( "object_id", objects[rnd.nextInt( objects.length )], null )
+							.putColumn( "object_value", randomString(32), null );
+					}
 				}
 
 				try {
@@ -283,6 +313,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_CREDENTIALS );
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_INFORMATION );
 		AstyanaxUtils.dropColumnFamily( KEYSPACE, ACCOUNT_URI_SEARCH );
+		AstyanaxUtils.dropColumnFamily( KEYSPACE, PROFILE_INFORMATION );
 		AstyanaxUtils.dropKeyspace( KEYSPACE );
 
 		response.append( "Dropped all the column families and keyspace\n" );
@@ -464,6 +495,41 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				            .build())
 				        .build());
 
+			keyspace.createColumnFamily(CF_PROFILE_INFORMATION, ImmutableMap.<String, Object>builder()
+
+					// MJS: Overriding types to UTF-8
+					.put("default_validation_class", "UTF8Type")
+			        .put("key_validation_class",     "UTF8Type")
+			        .put("comparator_type",          "UTF8Type")
+
+			        // MJS: Indexes
+			        .put("column_metadata", ImmutableMap.<String, Object>builder()
+				            .put("account_id", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "account_id")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("profile_id", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "profile_id")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("plugin_id", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "plugin_id")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("object_id", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .put("index_name",       "object_id")
+				                .put("index_type",       "KEYS")
+				                .build())
+				            .put("object_value", ImmutableMap.<String, Object>builder()
+				                .put("validation_class", "UTF8Type")
+				                .build())
+				            .build())
+				        .build());
+
 			response.append( "Regenerated all the column families and keyspace\n" );
 
 		} catch (ConnectionException e) {
@@ -587,6 +653,19 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					.putColumn( "user", lastName + "." + firstName, null )
 					.putColumn( "uri_search", "http://secure.barchart.com/" + lastName + "." + firstName, null )
 					.putColumn( "id_search", id, null );
+
+					for ( int profile = 0; profile < 10; profile++ ) {
+
+						final String profileId = randomString(32);
+
+						for ( int setting = 0; setting < 100; setting++ )
+							m.withRow( CF_PROFILE_INFORMATION, randomString(32) )
+							.putColumn( "account_id", id, null )
+							.putColumn( "profile_id", profileId, null )
+							.putColumn( "plugin_id", plugins[rnd.nextInt( plugins.length )], null )
+							.putColumn( "object_id", objects[rnd.nextInt( objects.length )], null )
+							.putColumn( "object_value", randomString(32), null );
+					}
 				}
 
 				try {
