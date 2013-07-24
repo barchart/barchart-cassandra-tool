@@ -18,7 +18,6 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 public class ClusterLoader {
 
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	private static Builder builder = null;
 	private static AstyanaxContext<Cluster> clusterContext = null;
 	private static Cluster cluster = null;
 
@@ -38,40 +37,40 @@ public class ClusterLoader {
 		log.info("socketTimeout      :" + socketTimeout);
 		log.info("maxTimeoutCount    :" + maxTimeoutCount);
 
-		// init builder
-		ConnectionPoolConfigurationImpl connectionPoolConfiguration =
-			new ConnectionPoolConfigurationImpl( connectionPoolName )
-				.setSeeds(seedHosts)
-				.setMaxConns(maxConns)
-				.setMaxConnsPerHost(maxConnsPerHost)
-				.setConnectTimeout(connectTimeout)
-				.setSocketTimeout(socketTimeout)
-				.setMaxTimeoutCount(maxTimeoutCount)
-		
-				// MJS: Added those to solidify the connection as I get a timeout quite often
-				.setLatencyAwareUpdateInterval(10000)  // Will resort hosts per token partition every 10 seconds
-		        .setLatencyAwareResetInterval(10000) // Will clear the latency every 10 seconds. In practice I set this to 0 which is the default. It's better to be 0.
-		        .setLatencyAwareBadnessThreshold(2) // Will sort hosts if a host is more than 100% slower than the best and always assign connections to the fastest host, otherwise will use round robin
-		        .setLatencyAwareWindowSize(100); // Uses last 100 latency samples. These samples are in a FIFO q and will just cycle themselves.
+		// Init builder - We connect to one node we connect to them all anyways
+		if ( clusterContext == null ) {
+			ConnectionPoolConfigurationImpl connectionPoolConfiguration =
+					new ConnectionPoolConfigurationImpl( connectionPoolName )
+						.setSeeds(seedHosts)
+						.setMaxConns(maxConns)
+						.setMaxConnsPerHost(maxConnsPerHost)
+						.setConnectTimeout(connectTimeout)
+						.setSocketTimeout(socketTimeout)
+						.setMaxTimeoutCount(maxTimeoutCount)
+				
+						// MJS: Added those to solidify the connection as I get a timeout quite often
+						.setLatencyAwareUpdateInterval(10000)  // Will resort hosts per token partition every 10 seconds
+				        .setLatencyAwareResetInterval(10000) // Will clear the latency every 10 seconds. In practice I set this to 0 which is the default. It's better to be 0.
+				        .setLatencyAwareBadnessThreshold(2) // Will sort hosts if a host is more than 100% slower than the best and always assign connections to the fastest host, otherwise will use round robin
+				        .setLatencyAwareWindowSize(100); // Uses last 100 latency samples. These samples are in a FIFO q and will just cycle themselves.
 
-		if ( builder == null )
-			builder = new AstyanaxContext.Builder()
-				.forCluster(clusterName)
-				.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()      
-		        	.setDiscoveryType(NodeDiscoveryType.TOKEN_AWARE)							// https://github.com/Netflix/astyanax/issues/127
-		        	.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE)						// https://github.com/Netflix/astyanax/issues/127
-		        	.setCqlVersion("3.0.0")
-					.setTargetCassandraVersion("1.2"))
-				.withConnectionPoolConfiguration(connectionPoolConfiguration)
-				.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
+			Builder builder = new AstyanaxContext.Builder()
+						.forCluster(clusterName)
+						.withAstyanaxConfiguration(new AstyanaxConfigurationImpl()      
+				        	.setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)							// https://github.com/Netflix/astyanax/issues/127
+				        	.setConnectionPoolType(ConnectionPoolType.ROUND_ROBIN)						// https://github.com/Netflix/astyanax/issues/127
+				        	.setCqlVersion("3.0.0")
+							.setTargetCassandraVersion("1.2"))
+						.withConnectionPoolConfiguration(connectionPoolConfiguration)
+						.withConnectionPoolMonitor(new CountingConnectionPoolMonitor());
 
-		// get cluster
-		clusterContext = builder.buildCluster(ThriftFamilyFactory.getInstance());
+			// get cluster
+			clusterContext = builder.buildCluster(ThriftFamilyFactory.getInstance());
 
-		clusterContext.start();
-		Cluster cluster = clusterContext.getClient();
+			clusterContext.start();
+		}
 
-		return cluster;
+		return clusterContext.getClient();
 	}
 
 	public synchronized Cluster getCluster(final Map<String, String> map) {
@@ -103,8 +102,8 @@ public class ClusterLoader {
 	}
 
 	public static synchronized void endCluster() {
+
 		if ( clusterContext != null ) {
-			
 			clusterContext.shutdown();
 			clusterContext = null;
 		}

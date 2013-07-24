@@ -263,7 +263,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 							.putColumn( "profile_id", profileId, null )
 							.putColumn( "plugin_id", plugins[rnd.nextInt( plugins.length )], null )
 							.putColumn( "object_id", objects[rnd.nextInt( objects.length )], null )
-							.putColumn( "object_value", randomString(32), null );
+							.putColumn( "object_value", randomString(3000), null );
 					}
 				}
 

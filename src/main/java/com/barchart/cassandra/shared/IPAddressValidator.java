@@ -21,6 +21,6 @@ public class IPAddressValidator {
 	 */
 	static public boolean validate(final String ip) {
 
-		return countOccurrences( ip, '.' ) == 3;
+		return countOccurrences( ip, '.' ) % 3 == 0;
 	}
 }

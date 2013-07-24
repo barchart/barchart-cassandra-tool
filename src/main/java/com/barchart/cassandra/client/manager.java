@@ -78,11 +78,11 @@ public class manager implements EntryPoint {
 			@Override
 			public void onClick(ClickEvent event) {
 
-				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE | GWTCPopupBox.OPTION_DISABLE_AUTOHIDE );
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
-				panel.add( new Label( "Number of users" ) );
+				panel.add( new Label( "Number of users to add" ) );
 				
 				final TextBox numberField = new TextBox();
 				panel.add( numberField );
@@ -92,8 +92,11 @@ public class manager implements EntryPoint {
 				final TextBox batchNumber = new TextBox();
 				panel.add( batchNumber );
 
+				final HorizontalPanel hor = new HorizontalPanel();
+				panel.add( hor );
+
 				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Start" );
-				panel.add( connectButton );
+				hor.add( connectButton );
 
 				connectButton.addClickHandler( new ClickHandler() {
 
@@ -123,6 +126,16 @@ public class manager implements EntryPoint {
 									}
 								});
 						}} );
+
+				final GWTCButton closeBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Close" );
+				hor.add( closeBtn );
+
+				closeBtn.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						queryBox.hide();
+					}} );
 
 				queryBox.center();
 			}} );
@@ -134,11 +147,11 @@ public class manager implements EntryPoint {
 			@Override
 			public void onClick(ClickEvent event) {
 
-				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE );
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE | GWTCPopupBox.OPTION_DISABLE_AUTOHIDE );
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
-				panel.add( new Label( "Number of users" ) );
+				panel.add( new Label( "Number of users to modify" ) );
 				
 				final TextBox numberField = new TextBox();
 				panel.add( numberField );
@@ -148,8 +161,11 @@ public class manager implements EntryPoint {
 				final TextBox batchNumber = new TextBox();
 				panel.add( batchNumber );
 
+				final HorizontalPanel hor = new HorizontalPanel();
+				panel.add( hor );
+
 				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Start" );
-				panel.add( connectButton );
+				hor.add( connectButton );
 
 				connectButton.addClickHandler( new ClickHandler() {
 
@@ -179,6 +195,16 @@ public class manager implements EntryPoint {
 									}
 								});
 						}} );
+
+				final GWTCButton closeBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Close" );
+				hor.add( closeBtn );
+
+				closeBtn.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						queryBox.hide();
+					}} );
 
 				queryBox.center();
 			}} );
@@ -214,10 +240,10 @@ public class manager implements EntryPoint {
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
-				panel.add( new Label( "seed" ) );
+				panel.add( new Label( "seeds" ) );
 				final TextBox seedField = new TextBox();
-				seedField.setText("127.0.0.1");
-				seedField.setWidth( "" + Window.getClientWidth() / 8 + "px" );
+				seedField.setText( "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237" );
+				seedField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
 				panel.add( seedField );
 
 				panel.add( new Label( "cluster" ) );
