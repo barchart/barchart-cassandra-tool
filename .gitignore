@@ -1,1 +1,24 @@
-/target
+
+#
+# eclipse meta data
+#
+.project
+.classpath
+.settings/
+
+#
+# eclipse build folder
+#
+bin/
+
+#
+# maven build folder
+#
+target/
+
+#
+# maven release meta data
+#
+release.properties
+pom.xml.*
+
