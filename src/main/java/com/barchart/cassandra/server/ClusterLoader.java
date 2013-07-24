@@ -18,8 +18,8 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 public class ClusterLoader {
 
 	protected final Logger log = LoggerFactory.getLogger(getClass());
-	private static AstyanaxContext<Cluster> clusterContext = null;
-	private static Cluster cluster = null;
+	private AstyanaxContext<Cluster> clusterContext = null;
+	private Cluster cluster = null;
 
 	public ClusterLoader() {
 	}
@@ -101,7 +101,7 @@ public class ClusterLoader {
 		return cluster;
 	}
 
-	public static synchronized void endCluster() {
+	public synchronized void endCluster() {
 
 		if ( clusterContext != null ) {
 			clusterContext.shutdown();

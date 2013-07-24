@@ -4,6 +4,7 @@ import com.google.code.p.gwtchismes.client.GWTCAlert;
 import com.google.code.p.gwtchismes.client.GWTCBox;
 import com.google.code.p.gwtchismes.client.GWTCButton;
 import com.google.code.p.gwtchismes.client.GWTCPopupBox;
+import com.google.code.p.gwtchismes.client.GWTCProgress;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -31,6 +32,33 @@ public class manager implements EntryPoint {
 			.create(CassandraService.class);
 
 	private GWTCAlert alert = new GWTCAlert( GWTCAlert.OPTION_ROUNDED_BLUE | GWTCAlert.OPTION_ANIMATION  );
+	private boolean bConnected = false;
+
+	private void doBatchInsert(final int orig, final int num, final int batch, final GWTCProgress prgBar, final Label status) {
+
+		if ( !bConnected || batch > num ) {
+			prgBar.removeFromParent();
+			status.removeFromParent();
+		}
+		else {
+			rpcService.batchInsertUsers( batch, batch,
+					new AsyncCallback<String>() {
+
+						public void onFailure(Throwable caught) {
+							prgBar.removeFromParent();
+							status.removeFromParent();
+
+							alert.alert( "RPC Failure: " + caught.getMessage() );
+						}
+
+						public void onSuccess(String result) {
+							status.setText( result );
+							prgBar.setProgress( 100 - (int) ( ( ((double) num) / orig ) * 100 ) );
+							doBatchInsert( orig, num - batch, batch, prgBar, status );
+						}
+					});
+		}
+	}
 
 	/**
 	 * This is the entry point method.
@@ -79,6 +107,8 @@ public class manager implements EntryPoint {
 			public void onClick(ClickEvent event) {
 
 				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE | GWTCPopupBox.OPTION_DISABLE_AUTOHIDE );
+				queryBox.setAnimationEnabled( true );
+
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
@@ -108,24 +138,20 @@ public class manager implements EntryPoint {
 							return;
 						}
 
+						final GWTCProgress prgBar = new GWTCProgress( 20, GWTCProgress.SHOW_NUMBERS );
+						panel.add( prgBar );
+
+						final Label status = new Label( "In progress..." );
+						panel.add( status );
+
 						final int batchAmount = Integer.parseInt( batchNumber.getText() );
 						int numberOfUsers = Integer.parseInt( numberField.getText() );
 
 						if ( batchAmount > numberOfUsers )
 							numberOfUsers = batchAmount;
 
-						rpcService.batchInsertUsers( numberOfUsers, batchAmount,
-								new AsyncCallback<String>() {
-
-									public void onFailure(Throwable caught) {
-										alert.alert( "RPC Failure" );
-									}
-
-									public void onSuccess(String result) {
-										alert.alert( "Response: " + result );
-									}
-								});
-						}} );
+						doBatchInsert( numberOfUsers, numberOfUsers, batchAmount, prgBar, status );
+					}} );
 
 				final GWTCButton closeBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Close" );
 				hor.add( closeBtn );
@@ -148,6 +174,8 @@ public class manager implements EntryPoint {
 			public void onClick(ClickEvent event) {
 
 				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE | GWTCPopupBox.OPTION_DISABLE_AUTOHIDE );
+				queryBox.setAnimationEnabled( true );
+
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
@@ -216,10 +244,12 @@ public class manager implements EntryPoint {
 
 			@Override
 			public void onClick(ClickEvent arg0) {
+				bConnected = false;
+
 				rpcService.disconnect( new AsyncCallback<String>() {
 
 					public void onFailure(Throwable caught) {
-						alert.alert( "RPC Failure" );
+						alert.alert( "RPC Failure: " + caught.getMessage() );
 					}
 
 					public void onSuccess(String result) {
@@ -240,13 +270,13 @@ public class manager implements EntryPoint {
 				final VerticalPanel panel = new VerticalPanel();
 				queryBox.add( panel );
 
-				panel.add( new Label( "seeds" ) );
+				panel.add( new Label( "seeds (if many separate by colon)" ) );
 				final TextBox seedField = new TextBox();
 				seedField.setText( "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237" );
 				seedField.setWidth( "" + Window.getClientWidth() / 4 + "px" );
 				panel.add( seedField );
 
-				panel.add( new Label( "cluster" ) );
+				panel.add( new Label( "cluster name" ) );
 				final TextBox clusterField = new TextBox();
 				clusterField.setText("Test Cluster");
 				clusterField.setWidth( "" + Window.getClientWidth() / 8 + "px" );
@@ -273,7 +303,7 @@ public class manager implements EntryPoint {
 							new AsyncCallback<String>() {
 
 								public void onFailure(Throwable caught) {
-									alert.alert( "RPC Failure" );
+									alert.alert( "RPC Failure: " + caught.getMessage() );
 								}
 
 								public void onSuccess(String result) {
@@ -284,7 +314,8 @@ public class manager implements EntryPoint {
 										connectBtn.removeFromParent();
 										queryBox.hide();
 
-										disconnectBtn.setText(  "Disconnect from " + seedField.getText() );
+										bConnected = true;
+										disconnectBtn.setText(  "Disconnect" );
 
 										functions.setWidget( 0, 0, disconnectBtn );
 										functions.setWidget( 1, 0, rebuildBtn );

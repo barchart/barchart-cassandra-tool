@@ -34,6 +34,10 @@ public class AstyanaxUtils {
 
 	private static ClusterLoader loader = new ClusterLoader();
 
+	public static ClusterLoader getLoader() {
+		return loader;
+	}
+
 	public static Cluster getCluster() {
 		return loader.getCluster( properties );
 	}

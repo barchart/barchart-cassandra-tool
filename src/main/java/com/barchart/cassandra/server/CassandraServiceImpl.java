@@ -267,39 +267,45 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					}
 				}
 
+				log.debug( "Inserting a batch now" );
+
 				try {
 					OperationResult<Void> result = m.execute();
 					latencies += result.getLatency();
 
 				} catch (ConnectionException e) {
 				}
+
+				log.debug( "Finished inserting a batch now" );
 			}
 
 			long end = Calendar.getInstance().getTimeInMillis();
 			response.append( "\nTotal time was " + ( end - begin ) / 1000 + " sec\nAverage latency of a batch was " + latencies / ( number / batchNum ) + " ms" );
 		}
 
-		try {
-			final OperationResult<CqlResult<String, String>> result1
-				= keyspace.prepareQuery( CF_ACCOUNT_CREDENTIALS )
-					.withCql("SELECT count(*) FROM " + ACCOUNT_CREDENTIALS + " LIMIT 10000000;" )
+		// MJS: No count for now
+		if ( false )
+			try {
+				final OperationResult<CqlResult<String, String>> result1
+					= keyspace.prepareQuery( CF_ACCOUNT_CREDENTIALS )
+						.withCql("SELECT count(*) FROM " + ACCOUNT_CREDENTIALS + " LIMIT 10000000;" )
+						.execute();
+	
+				// MJS: Pretty is ain't
+				response.append( "\n\n" + ACCOUNT_CREDENTIALS + " now holds " + result1.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
+	
+				final OperationResult<CqlResult<String, String>> result2
+				= keyspace.prepareQuery( CF_ACCOUNT_INFORMATION )
+					.withCql("SELECT count(*) FROM " + ACCOUNT_INFORMATION + " LIMIT 10000000;" )
 					.execute();
-
-			// MJS: Pretty is ain't
-			response.append( "\n\n" + ACCOUNT_CREDENTIALS + " now holds " + result1.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
-
-			final OperationResult<CqlResult<String, String>> result2
-			= keyspace.prepareQuery( CF_ACCOUNT_INFORMATION )
-				.withCql("SELECT count(*) FROM " + ACCOUNT_INFORMATION + " LIMIT 10000000;" )
-				.execute();
-
-			// MJS: Pretty is ain't
-			response.append( "\n\n" + ACCOUNT_INFORMATION + " now holds " + result2.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
-
-		} catch (ConnectionException e) {
-			log.error("Error", e);
-			response.append( "\n" + e );
-		}
+	
+				// MJS: Pretty is ain't
+				response.append( "\n\n" + ACCOUNT_INFORMATION + " now holds " + result2.getResult().getRows().getRowByIndex(0).getColumns().getColumnByName("count").getLongValue() + " entries" );
+	
+			} catch (ConnectionException e) {
+				log.error("Error", e);
+				response.append( "\n" + e );
+			}
 		
 		return response.toString();
 	}
@@ -685,7 +691,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 	@Override
 	public String disconnect() {
-		ClusterLoader.endCluster();
+		AstyanaxUtils.getLoader().endCluster();
 
 		return "Completed disconnection";
 	}
