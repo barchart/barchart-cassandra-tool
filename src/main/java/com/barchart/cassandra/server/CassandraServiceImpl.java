@@ -18,6 +18,7 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.exceptions.SchemaDisagreementException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Rows;
@@ -735,15 +736,45 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				}
 
 				final Keyspace keyspace = AstyanaxUtils.getCluster().getKeyspace( KEYSTORE );
-				keyspace.createColumnFamily( CF_TABLE, ImmutableMap.<String, Object>builder()
 
-						// MJS: Overriding types to UTF-8
-						.put("default_validation_class", "UTF8Type")
-				        .put("key_validation_class",     "UTF8Type")
-				        .put("comparator_type",          "UTF8Type")
+				// MJS: We might encounter a schema disagreement issue so we need to wait it out until it is resolved by the nodes
+				int attempt = 0;
 
-				        // MJS: Columns and indexes
-				        .put("column_metadata", ImmutableMap.<String, Object>builder().putAll( structure ).build()).build());
+				do {
+		            try {
+						keyspace.createColumnFamily( CF_TABLE, ImmutableMap.<String, Object>builder()
+
+								// MJS: Overriding types to UTF-8
+								.put("default_validation_class", "UTF8Type")
+						        .put("key_validation_class",     "UTF8Type")
+						        .put("comparator_type",          "UTF8Type")
+
+						        // MJS: Columns and indexes
+						        .put("column_metadata", ImmutableMap.<String, Object>builder().putAll( structure ).build()).build());
+
+						break;
+		            }
+		            catch (SchemaDisagreementException e) {
+
+						log.error( "Error: " + e.getMessage() );
+
+						if ( ++attempt >= 10 ) {
+
+		                    throw e;
+		                }
+
+		                try {
+		                    Thread.sleep( 10000 );
+
+		                }
+		                catch (InterruptedException e1) {
+
+		                    Thread.interrupted();
+		                    throw new RuntimeException(e1);
+
+		                }
+		            }
+		        } while (true);
 
 				for ( int batchSize = 10; batchSize < maxBatch; batchSize += maxBatch / 10 ) {
 
@@ -777,7 +808,10 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 						}
 					}
 
-					response.append( "" + numCol + "," + batchSize + "," + maxNumber + "," + totalTime +"\n" );
+					final String line = "" + numCol + "," + batchSize + "," + maxNumber + "," + totalTime;
+					System.out.println( line );
+
+					response.append( line +"\n" );
 				}
 
 				// MJS: We don't need that column anymore
