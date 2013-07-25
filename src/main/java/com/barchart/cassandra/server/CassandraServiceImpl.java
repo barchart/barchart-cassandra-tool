@@ -795,7 +795,8 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 	public static void main(String[] args) {
 		final CassandraService service = new CassandraServiceImpl();
-		final String result1 = service.connect( "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237", "Test Cluster");
+		//final String result1 = service.connect( "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237", "Test Cluster");
+		final String result1 = service.connect( "54.241.8.237", "Test Cluster");
 		final String result = service.batchInsertTestTables( 10000, 100 );
 		System.out.println( result );
 	}
