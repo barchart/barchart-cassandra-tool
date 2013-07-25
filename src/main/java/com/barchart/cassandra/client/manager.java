@@ -38,7 +38,6 @@ public class manager implements EntryPoint {
 
 		if ( !bConnected || batch > num ) {
 			prgBar.removeFromParent();
-			status.removeFromParent();
 		}
 		else {
 			rpcService.batchInsertUsers( batch, batch,
@@ -46,8 +45,6 @@ public class manager implements EntryPoint {
 
 						public void onFailure(Throwable caught) {
 							prgBar.removeFromParent();
-							status.removeFromParent();
-
 							alert.alert( "RPC Failure: " + caught.getMessage() );
 						}
 
@@ -66,7 +63,6 @@ public class manager implements EntryPoint {
 	public void onModuleLoad() {
 
 		final GWTCBox mainPanel = new GWTCBox( );
-
 		mainPanel.setTitle( "Cassandra tools" );
 
 		final FlexTable functions = new FlexTable();
@@ -152,6 +148,76 @@ public class manager implements EntryPoint {
 
 						doBatchInsert( numberOfUsers, numberOfUsers, batchAmount, prgBar, status );
 					}} );
+
+				final GWTCButton closeBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Close" );
+				hor.add( closeBtn );
+
+				closeBtn.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						queryBox.hide();
+					}} );
+
+				queryBox.center();
+			}} );
+
+		final GWTCButton testProgressiveBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Progressive insertion test" );
+		testProgressiveBtn.setTitle( "This test will generate gradually more complex tables and benchmark the performance that will be reported in a CSV formatted result" );
+		testProgressiveBtn.addClickHandler( new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent arg0) {
+				final GWTCPopupBox queryBox = new GWTCPopupBox( GWTCPopupBox.OPTION_ROUNDED_BLUE | GWTCPopupBox.OPTION_DISABLE_AUTOHIDE );
+				queryBox.setAnimationEnabled( true );
+
+				final VerticalPanel panel = new VerticalPanel();
+				queryBox.add( panel );
+
+				panel.add( new Label( "Max num of entries" ) );
+				
+				final TextBox numberField = new TextBox();
+				panel.add( numberField );
+
+				panel.add( new Label( "Max batch amount" ) );
+
+				final TextBox batchNumber = new TextBox();
+				panel.add( batchNumber );
+
+				final HorizontalPanel hor = new HorizontalPanel();
+				panel.add( hor );
+
+				final GWTCButton connectButton = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Start" );
+				hor.add( connectButton );
+
+				connectButton.addClickHandler( new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						if ( numberField.getText().length() == 0 || batchNumber.getText().length() == 0 ) {
+							alert.alert( "Please enter valid numbers" );
+							return;
+						}
+
+						final int batchAmount = Integer.parseInt( batchNumber.getText() );
+						int numberOfUsers = Integer.parseInt( numberField.getText() );
+
+						if ( batchAmount > numberOfUsers )
+							numberOfUsers = batchAmount;
+
+						rpcService.batchInsertTestTables( numberOfUsers, batchAmount,
+								new AsyncCallback<String>() {
+
+									public void onFailure(Throwable caught) {
+										alert.alert( "RPC Failure" );
+									}
+
+									public void onSuccess(String result) {
+										alert.alert( "Response: " + result );
+									}
+								});
+						}} );
 
 				final GWTCButton closeBtn = new GWTCButton( GWTCButton.BUTTON_TYPE_1, "Close" );
 				hor.add( closeBtn );
@@ -321,6 +387,7 @@ public class manager implements EntryPoint {
 										functions.setWidget( 1, 0, rebuildBtn );
 										functions.setWidget( 2, 0, testUserBtn );
 										functions.setWidget( 3, 0, modifyUserBtn );
+										functions.setWidget( 4, 0, testProgressiveBtn );
 									}
 								}
 							});

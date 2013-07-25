@@ -12,5 +12,6 @@ public interface CassandraService extends RemoteService {
 	String disconnect();
 	String createSchema();
 	String batchInsertUsers(Integer number, Integer batchNum);
+	String batchInsertTestTables(Integer maxNumber, Integer maxBatch);
 	String batchModifyUsers(Integer number, Integer batchNum);
 }

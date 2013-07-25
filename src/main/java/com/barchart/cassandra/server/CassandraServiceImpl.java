@@ -1,6 +1,8 @@
 package com.barchart.cassandra.server;
 
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -9,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import com.barchart.cassandra.client.CassandraService;
 import com.barchart.cassandra.shared.FieldVerifier;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -77,14 +81,11 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			return "Name must be a valid address";
 		}
 
-		String userAgent = getThreadLocalRequest().getHeader("User-Agent");
-
 		StringBuilder response = new StringBuilder();
 
 		// Escape data from the client to avoid cross-site script
 		// vulnerabilities.
 		seed = escapeHtml(seed);
-		userAgent = escapeHtml(userAgent);
 
 		AstyanaxUtils.setProperty("seeds", seed);
 		AstyanaxUtils.setProperty("cluster", cluster);
@@ -694,5 +695,108 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 		AstyanaxUtils.getLoader().endCluster();
 
 		return "Completed disconnection";
+	}
+
+	@Override
+	public String batchInsertTestTables(Integer maxNumber, Integer maxBatch) {
+		final StringBuilder response = new StringBuilder();
+
+		final String KEYSTORE = "test_keystore";
+		AstyanaxUtils.dropKeyspace( KEYSTORE );
+		AstyanaxUtils.createKeyspace( KEYSTORE, AstyanaxUtils.SimpleStrategy, 2 );
+
+		response.append( "num columns,batch size,total size,time\n" );
+
+		for ( int numCol = 1; numCol < 10; numCol++ ) {
+
+			// MJS: We programmatically generate the table we need
+			final String tableName = "test" + numCol;
+
+			log.debug( "Creating table " + tableName );
+			final ColumnFamily<String, String> CF_TABLE = new ColumnFamily<String, String>(
+					tableName,					// Column Family Name
+					StringSerializer.get(),		// Key Serializer
+					StringSerializer.get());	// Column Serializer
+
+			try {
+
+				final Map<String, Object> structure = new HashMap<String, Object>();
+
+				// MJS: Overriding types to UTF-8
+				for (int col = 0; col < numCol; col++) {
+
+					log.debug( "Adding column " + "col" + col + " to " + tableName );
+					structure.put(
+							"col" + col,
+							ImmutableMap.<String, Object> builder()
+									.put("validation_class", "UTF8Type")
+									.put("index_name", "col" + col )
+									.put("index_type", "KEYS").build());
+				}
+
+				final Keyspace keyspace = AstyanaxUtils.getCluster().getKeyspace( KEYSTORE );
+				keyspace.createColumnFamily( CF_TABLE, ImmutableMap.<String, Object>builder()
+
+						// MJS: Overriding types to UTF-8
+						.put("default_validation_class", "UTF8Type")
+				        .put("key_validation_class",     "UTF8Type")
+				        .put("comparator_type",          "UTF8Type")
+
+				        // MJS: Columns and indexes
+				        .put("column_metadata", ImmutableMap.<String, Object>builder().putAll( structure ).build()).build());
+
+				for ( int batchSize = 1; batchSize < maxBatch; batchSize += maxBatch / 10 ) {
+
+					log.debug( "Batch size is " + batchSize );
+					int totalTime = 0;
+
+					for ( int iter = 0; iter < maxNumber; iter += batchSize ) {
+
+						final MutationBatch m = keyspace.prepareMutationBatch();
+
+						for ( int i = 0; i < batchSize; i++ ) {
+							final ColumnListMutation<String> mut = m.withRow( CF_TABLE, randomString(32) );
+
+							for ( int j = 0; j < numCol; j++ )
+								mut.putColumn( "col" + j, randomString(3000), null );
+						}
+
+						final long timeStart = Calendar.getInstance().getTimeInMillis();
+
+						try {
+							m.execute();
+							long elapsed = Calendar.getInstance().getTimeInMillis() - timeStart;
+
+							log.debug( "Insertion time was " + elapsed );
+							totalTime += elapsed;
+
+						} catch (ConnectionException e) {
+							log.error( "Error: " + e.getMessage() );
+							totalTime = -1;
+							break;
+						}
+					}
+
+					response.append( "" + numCol + "," + batchSize + "," + maxNumber + "," + totalTime +"\n" );
+				}
+
+				// MJS: We don't need that column anymore
+				AstyanaxUtils.dropColumnFamily( KEYSPACE, tableName );
+
+			} catch (ConnectionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		AstyanaxUtils.dropKeyspace( KEYSTORE );
+		return response.toString();
+	}
+
+	public static void main(String[] args) {
+		final CassandraService service = new CassandraServiceImpl();
+		final String result1 = service.connect( "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237", "Test Cluster");
+		final String result = service.batchInsertTestTables( 10000, 100 );
+		System.out.println( result );
 	}
 }

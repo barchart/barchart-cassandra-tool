@@ -13,6 +13,9 @@ public interface CassandraServiceAsync {
 	void batchInsertUsers(Integer number, Integer batchNum,
 			AsyncCallback<String> callback);
 
+	void batchInsertTestTables(Integer maxNumber, Integer maxBatch,
+			AsyncCallback<String> callback);
+
 	void batchModifyUsers(Integer number, Integer batchNum,
 			AsyncCallback<String> callback);
 }

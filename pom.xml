@@ -99,16 +99,6 @@
 			<version>0.9.8</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.cassandra</groupId>
-			<artifactId>cassandra-all</artifactId>
-			<version>1.2.6</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.cassandra</groupId>
-			<artifactId>cassandra-thrift</artifactId>
-			<version>1.2.6</version>
-		</dependency>
 	</dependencies>
 
 	<build>
