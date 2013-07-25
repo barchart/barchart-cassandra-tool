@@ -707,10 +707,10 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 		response.append( "num columns,batch size,total size,time\n" );
 
-		for ( int numCol = 1; numCol < 10; numCol++ ) {
+		for ( int numCol = 1; numCol < 11; numCol++ ) {
 
 			// MJS: We programmatically generate the table we need
-			final String tableName = "test" + numCol;
+			final String tableName = "test_" + numCol;
 
 			log.debug( "Creating table " + tableName );
 			final ColumnFamily<String, String> CF_TABLE = new ColumnFamily<String, String>(
@@ -730,7 +730,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 							"col" + col,
 							ImmutableMap.<String, Object> builder()
 									.put("validation_class", "UTF8Type")
-									.put("index_name", "col" + col )
+									.put("index_name", "col_" + numCol + "_" + col )
 									.put("index_type", "KEYS").build());
 				}
 
@@ -745,7 +745,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 				        // MJS: Columns and indexes
 				        .put("column_metadata", ImmutableMap.<String, Object>builder().putAll( structure ).build()).build());
 
-				for ( int batchSize = 1; batchSize < maxBatch; batchSize += maxBatch / 10 ) {
+				for ( int batchSize = 10; batchSize < maxBatch; batchSize += maxBatch / 10 ) {
 
 					log.debug( "Batch size is " + batchSize );
 					int totalTime = 0;
