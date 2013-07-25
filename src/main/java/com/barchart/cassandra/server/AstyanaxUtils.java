@@ -13,9 +13,6 @@ import com.netflix.astyanax.ddl.KeyspaceDefinition;
 
 public class AstyanaxUtils {
 
-	public static final String SimpleStrategy = "org.apache.cassandra.locator.SimpleStrategy";
-	public static final String NetworkTopologyStrategy = "org.apache.cassandra.locator.NetworkTopologyStrategy";
-
 	@SuppressWarnings("serial")
 	private static Map<String, String> properties = new HashMap<String, String>() {{
 		put( "cluster", "Test Cluster" );
@@ -43,19 +40,23 @@ public class AstyanaxUtils {
 	}
 
 	public static boolean createKeyspace(String keyspace, String strategyClass,
-			int replication) {
+			int replication, String[] zones) throws ConnectionException {
 
-		Map<String, String> options = new HashMap<String, String>();
-		options.put("replication_factor", String.valueOf(replication));
+		final Map<String, String> options = new HashMap<String, String>();
+
+		if ( strategyClass.equals( "SimpleStrategy" ) )
+			options.put("replication_factor", String.valueOf(replication));
+
+		else {
+			for ( String zone : zones )
+				options.put( zone, String.valueOf(replication) );
+		}
+
 		KeyspaceDefinition keyspaceDef = getCluster().makeKeyspaceDefinition();
 		keyspaceDef.setName(keyspace);
 		keyspaceDef.setStrategyClass(strategyClass);
 		keyspaceDef.setStrategyOptions(options);
-		try {
-			getCluster().addKeyspace(keyspaceDef);
-		} catch (ConnectionException e) {
-			return false;
-		}
+		getCluster().addKeyspace(keyspaceDef);
 
 		return true;
 	}
