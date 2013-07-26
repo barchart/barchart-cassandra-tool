@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.ddl.SchemaChangeResult;
 import com.typesafe.config.Config;
@@ -23,10 +24,33 @@ public class Basic {
 
 		final Cluster cluster = Util.clusterFrom(config);
 
-		final OperationResult<SchemaChangeResult> result = Util.keyspaceFrom(
+		final OperationResult<SchemaChangeResult> keyspaceResult = Util
+				.keyspaceFrom(cluster, config);
+
+		log.info("keyspace: {} ms",
+				keyspaceResult.getLatency(TimeUnit.MILLISECONDS));
+
+		final OperationResult<SchemaChangeResult> tableResult = Util.tableFrom(
 				cluster, config);
 
-		log.info("latency: {} ms", result.getLatency(TimeUnit.MILLISECONDS));
+		log.info("table: {} ms", tableResult.getLatency(TimeUnit.MILLISECONDS));
+
+		long batchSize = 0;
+		long batchTime = 0;
+
+		for (int batch = 0; batch < 100; batch++) {
+
+			final MutationBatch mutate = Util.mutationFrom(cluster, config);
+			batchSize += mutate.getRowCount();
+			log.info("batchSize: {}", batchSize);
+
+			final OperationResult<Void> mutateResult = mutate.execute();
+			batchTime += mutateResult.getLatency(TimeUnit.MILLISECONDS);
+			log.info("batchTime: {}", batchTime);
+
+		}
+
+		log.info("mutate: {} ms", batchTime / batchSize);
 
 	}
 
