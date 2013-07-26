@@ -61,23 +61,29 @@ class Util {
 		return context.getClient();
 	}
 
+	public static Map<String, String> mapFrom(final Config config) {
+		final Map<String, Object> source = config.root().unwrapped();
+		final Map<String, String> target = new HashMap<String, String>();
+		for (final Map.Entry<String, Object> entry : source.entrySet()) {
+			target.put(entry.getKey(), entry.getValue().toString());
+		}
+		return target;
+	}
+
 	public static OperationResult<SchemaChangeResult> keyspaceFrom(
 			final Cluster cluster, final Config root) throws Exception {
 
-		final Config config = root.getConfig("KeyspaceDefinition");
-
-		final Map<String, String> options = new HashMap<String, String>();
-		options.put("eqx", "2");
-		options.put("us-east-1", "2");
-		options.put("us-west-1", "2");
-
 		final KeyspaceDefinition keyspace = cluster.makeKeyspaceDefinition();
+
+		final Config config = root.getConfig("KeyspaceDefinition");
 
 		keyspace.setName(config.getString("Name"));
 
-		keyspace.setStrategyClass("org.apache.cassandra.locator.NetworkTopologyStrategy");
+		final Config strategy = config.getConfig("Strategy");
 
-		keyspace.setStrategyOptions(options);
+		keyspace.setStrategyClass(strategy.getString("Class"));
+
+		keyspace.setStrategyOptions(mapFrom(strategy.getConfig("Options")));
 
 		final OperationResult<SchemaChangeResult> result = cluster
 				.addKeyspace(keyspace);
