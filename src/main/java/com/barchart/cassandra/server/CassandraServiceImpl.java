@@ -1,5 +1,9 @@
 package com.barchart.cassandra.server;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -902,28 +906,31 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 	final String[] zones = { "eqx", "us-east-1", "us-west-1" };
 
-	@Override
-	public String batchInsertTestTables(Integer maxNumber, Integer maxBatch) {
-		final boolean bCreateSchema = true;
-		final boolean bDeleteSchema = true;
-		final int maxColumns = 10;
-		final StringBuilder response = new StringBuilder();
+	static private String KEYSTORE = "test_keystore_002";
+	static private int MAX_COLUMNS = 10;
 
-		final String KEYSTORE = "test_keystore_007";
+	public void createProgressiveSchema(final int maxColumns) {
+		
+		try {
+			AstyanaxUtils.dropKeyspace(KEYSTORE);
+			AstyanaxUtils.createKeyspace(KEYSTORE,
+					"NetworkTopologyStrategy", 2, zones);
 
-		if (bCreateSchema)
-			try {
-				AstyanaxUtils.dropKeyspace(KEYSTORE);
-				AstyanaxUtils.createKeyspace(KEYSTORE,
-						"NetworkTopologyStrategy", 2, zones);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		Keyspace keyspace = null;
 
-		response.append("num columns,batch size,total size,time write,ms/write (each row),time read,ms/read (each row),% of read failures\n");
+		try {
+			keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSTORE);
 
-		for (int maxSize = maxNumber / 10; maxSize < maxNumber; maxSize += maxNumber / 10)
+		} catch (ConnectionException e2) {
+			e2.printStackTrace();
+		}
+
+		// MJS: We programmatically generate everything we need below
+		if ( keyspace != null ) {
 
 			for (int numCol = 1; numCol < maxColumns + 1; numCol++) {
 
@@ -936,96 +943,127 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 						StringSerializer.get(), // Key Serializer
 						StringSerializer.get()); // Column Serializer
 
-				Keyspace keyspace = null;
-
 				try {
-					keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSTORE);
-
-				} catch (ConnectionException e2) {
-					e2.printStackTrace();
-				}
-
-				if (bCreateSchema) {
-					try {
-						final Map<String, Object> structure = new HashMap<String, Object>();
-
-						// MJS: Overriding types to UTF-8
-						for (int col = 0; col < numCol; col++) {
-
-							log.debug("Adding column " + "col" + col + " to "
-									+ tableName);
-							structure
-									.put("col" + col,
-											ImmutableMap
-													.<String, Object> builder()
-													.put("validation_class",
-															"UTF8Type")
-													.put("index_name",
-															"col_" + numCol
-																	+ "_" + col)
-													.put("index_type", "KEYS")
-													.build());
-						}
-						// MJS: We might encounter a schema disagreement issue
-						// so we need to wait it out until it is resolved by the
-						// nodes
-						int attempt = 0;
-
-						do {
-							try {
-								keyspace.createColumnFamily(
-										CF_TABLE,
+					final Map<String, Object> structure = new HashMap<String, Object>();
+	
+					// MJS: Overriding types to UTF-8
+					for (int col = 0; col < numCol; col++) {
+	
+						log.debug("Adding column " + "col" + col + " to "
+								+ tableName);
+						structure
+								.put("col" + col,
 										ImmutableMap
 												.<String, Object> builder()
-
-												// MJS: Overriding types to
-												// UTF-8
-												.put("default_validation_class",
+												.put("validation_class",
 														"UTF8Type")
-												.put("key_validation_class",
-														"UTF8Type")
-												.put("comparator_type",
-														"UTF8Type")
-
-												// MJS: Columns and indexes
-												.put("column_metadata",
-														ImmutableMap
-																.<String, Object> builder()
-																.putAll(structure)
-																.build())
+												.put("index_name",
+														"col_" + numCol
+																+ "_" + col)
+												.put("index_type", "KEYS")
 												.build());
-
-								break;
-							} catch (SchemaDisagreementException e) {
-
-								log.error("Error: " + e.getMessage());
-
-								if (++attempt >= 10) {
-
-									throw e;
-								}
-
-								try {
-									Thread.sleep(10000);
-
-								} catch (InterruptedException e1) {
-
-									Thread.interrupted();
-									throw new RuntimeException(e1);
-
-								}
-							}
-						} while (true);
-
-					} catch (ConnectionException e) {
-						e.printStackTrace();
 					}
+					// MJS: We might encounter a schema disagreement issue
+					// so we need to wait it out until it is resolved by the
+					// nodes
+					int attempt = 0;
+	
+					do {
+						try {
+							keyspace.createColumnFamily(
+									CF_TABLE,
+									ImmutableMap
+											.<String, Object> builder()
+	
+											// MJS: Overriding types to
+											// UTF-8
+											.put("default_validation_class",
+													"UTF8Type")
+											.put("key_validation_class",
+													"UTF8Type")
+											.put("comparator_type",
+													"UTF8Type")
+	
+											// MJS: Columns and indexes
+											.put("column_metadata",
+													ImmutableMap
+															.<String, Object> builder()
+															.putAll(structure)
+															.build())
+											.build());
+	
+							break;
+
+						} catch (SchemaDisagreementException e) {
+	
+							log.error("Error: " + e.getMessage());
+	
+							if (++attempt >= 10) {
+	
+								throw e;
+							}
+	
+							try {
+								Thread.sleep(10000);
+	
+							} catch (InterruptedException e1) {
+	
+								Thread.interrupted();
+								throw new RuntimeException(e1);
+	
+							}
+						}
+					} while (true);
+	
+				} catch (ConnectionException e) {
+					e.printStackTrace();
 				}
+			}
+		}
+	}
+
+	public String progressiveTest(final String label, final int maxNumber, final int maxBatch) {
+
+		final StringBuilder response = new StringBuilder();
+		response.append("num columns,batch size,total size,time write,ms/write (each row),writes/sec,time read,ms/read (each row),read/sec,% of read failures\n");
+
+		Keyspace keyspace = null;
+
+		try {
+			keyspace = AstyanaxUtils.getCluster().getKeyspace(KEYSTORE);
+
+		} catch ( Exception e2 ) {
+			e2.printStackTrace();
+			return "";
+		}
+
+		PrintWriter writer = null;
+
+		if ( label != null )
+			try {
+				writer = new PrintWriter( label, "UTF-8");
+
+			} catch ( Exception e1 ) {
+				e1.printStackTrace();
+				return "";
+			}
+
+		for (int maxSize = maxNumber / 10; maxSize < maxNumber; maxSize += maxNumber / 10) {
+
+			for (int numCol = 1; numCol < MAX_COLUMNS + 1; numCol++) {
+
+				final String tableName = "test_" + numCol;
+
+				log.debug("Creating table " + tableName);
+				final ColumnFamily<String, String> CF_TABLE = new ColumnFamily<String, String>(
+						tableName, // Column Family Name
+						StringSerializer.get(), // Key Serializer
+						StringSerializer.get()); // Column Serializer
+
 
 				// MJS: Now we populate each table and benchmark R/W
 				final List<String> keys = new FastList<String>();
 				final int interval = Math.max(maxBatch / 10, 1);
-				maxBatch = maxBatch > interval ? maxBatch : interval + 1;
 
 				for ( int batchSize = interval; batchSize < maxBatch; batchSize += interval ) {
 
@@ -1060,7 +1098,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 							final long timeStartWrite = Calendar.getInstance()
 									.getTimeInMillis();
 
-							m.setConsistencyLevel(ConsistencyLevel.CL_ONE);
+							m.setConsistencyLevel(ConsistencyLevel.CL_ANY);
 							m.execute();
 
 							writeTime += Calendar.getInstance()
@@ -1081,6 +1119,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 										.getKey(key)
 										.execute().getResult();
 
+								// MJS: Very primitie 
 								if (!result.isEmpty()) {
 
 									if ( numCol != result.getColumnNames().size()  )
@@ -1088,9 +1127,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 									//for (String name : result.getColumnNames()) {
 									//}
-
-								} else {
-									readErrors++;
 								}
 							}
 
@@ -1110,33 +1146,66 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					final String line = "" + numCol + "," + batchSize + ","
 							+ maxSize + "," + writeTime + ","
 							+ df.format((double) writeTime / maxSize ) + ","
+							+ df.format((double) maxSize * 1000 / writeTime ) + ","
 							+ readTime + ","
 							+ df.format((double) readTime / maxSize ) + ","
+							+ df.format((double) maxSize * 1000 / readTime ) + ","
 							+ df.format( 100 * (double) readErrors / maxSize );
 
 					System.out.println(line);
+
+					if ( writer != null )
+						writer.println( line );
+
 					response.append(line + "\n");
 				}
 
-				// MJS: We don't need that column anymore
-				if (bDeleteSchema)
-					AstyanaxUtils.dropColumnFamily(KEYSPACE, tableName);
+				System.out.println( response.toString() );
 			}
+		}
 
-		if (bDeleteSchema)
-			AstyanaxUtils.dropKeyspace(KEYSTORE);
+		if ( writer != null )
+			writer.close();
 
 		return response.toString();
 	}
 
+	@Override
+	public String batchInsertTestTables(Integer maxNumber, Integer maxBatch) {
+
+		final boolean bCreateSchema = true;
+
+		if (bCreateSchema)
+			createProgressiveSchema( MAX_COLUMNS );
+
+		final int interval = Math.max(maxBatch / 10, 1);
+		return progressiveTest( null, maxNumber, maxBatch > interval ? maxBatch : interval + 1);
+	}
+
 	public static void main(String[] args) {
-		final CassandraService service = new CassandraServiceImpl();
+
+		final CassandraServiceImpl service = new CassandraServiceImpl();
+		service.connect( "cassandra-02.us-east-1.aws.barchart.com", "Evaluator");
+		service.createProgressiveSchema( MAX_COLUMNS );
+
 		// final String result1 = service.connect(
 		// "8.18.161.171,8.18.161.172,23.21.203.137,54.215.0.192,54.225.121.84,54.241.8.237",
 		// "Test Cluster");
-		final String result1 = service.connect(
-				"cassandra-02.us-east-1.aws.barchart.com", "Evaluator");
-		final String result = service.batchInsertTestTables(10000, 100);
-		System.out.println(result);
+		//cassandra-01.us-east-1.aws.barchart.com,cassandra-02.us-west-1.aws.barchart.com,cassandra-01.us-west-1.aws.barchart.com
+		for ( int i = 0; i < 1; i++ ) {
+
+			final String label = "test" + i + ".out";
+
+			new Thread(new Runnable() {
+
+				@Override
+				public void run() {
+
+					final CassandraServiceImpl service = new CassandraServiceImpl();
+					final String result1 = service.connect(
+							"cassandra-02.us-east-1.aws.barchart.com", "Evaluator");
+					final String result = service.progressiveTest( label, 1000000, 1000);
+				}}).start();
+		}
 	}
 }
