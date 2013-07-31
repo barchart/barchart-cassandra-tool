@@ -191,6 +191,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 			long begin = Calendar.getInstance().getTimeInMillis();
 
 			for (int i = 0; i < number; i += batchNum) {
+				log.debug("Inserted " + i + " entries" );
 				MutationBatch m = keyspace.prepareMutationBatch();
 
 				for (int j = 0; j < batchNum; j++) {
@@ -285,7 +286,8 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					}
 				}
 
-				log.debug("Inserting a batch now");
+				m.setConsistencyLevel(ConsistencyLevel.CL_ANY);
+				log.debug("Inserting a batch of " + batchNum );
 
 				try {
 					OperationResult<Void> result = m.execute();
@@ -293,8 +295,6 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 				} catch (ConnectionException e) {
 				}
-
-				log.debug("Finished inserting a batch now");
 			}
 
 			long end = Calendar.getInstance().getTimeInMillis();
@@ -906,7 +906,7 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 	final String[] zones = { "eqx", "us-east-1", "us-west-1" };
 
-	static private String KEYSTORE = "test_keystore_002";
+	static private String KEYSTORE = "test_keystore_001";
 	static private int MAX_COLUMNS = 10;
 
 	public void createProgressiveSchema(final int maxColumns) {
@@ -1186,6 +1186,8 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 
 		final CassandraServiceImpl service = new CassandraServiceImpl();
 		service.connect( "cassandra-02.us-east-1.aws.barchart.com", "Evaluator");
+
+		// Generic test
 		service.createProgressiveSchema( MAX_COLUMNS );
 
 		// final String result1 = service.connect(
@@ -1207,5 +1209,9 @@ public class CassandraServiceImpl extends RemoteServiceServlet implements
 					final String result = service.progressiveTest( label, 1000000, 1000);
 				}}).start();
 		}
+
+		// Schema we will use
+		//service.createSchema();
+		//service.batchInsertUsers( 100000, 10 );
 	}
 }
